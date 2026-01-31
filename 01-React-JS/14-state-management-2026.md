@@ -39,10 +39,11 @@ export function ThemeProvider({ children }) {
     toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light')
   };
   
+  // React 19: No need for .Provider
   return (
-    <ThemeContext.Provider value={value}>
+    <ThemeContext value={value}>
       {children}
-    </ThemeContext.Provider>
+    </ThemeContext>
   );
 }
 
@@ -100,9 +101,9 @@ function AppProvider({ children }) {
   const value = { user, setUser, theme, setTheme };
   
   return (
-    <AppContext.Provider value={value}>
+    <AppContext value={value}>
       {children}
-    </AppContext.Provider>
+    </AppContext>
   );
 }
 ```
@@ -119,11 +120,11 @@ function AppProvider({ children }) {
   const [theme, setTheme] = useState('light');
   
   return (
-    <UserContext.Provider value={{ user, setUser }}>
-      <ThemeContext.Provider value={{ theme, setTheme }}>
+    <UserContext value={{ user, setUser }}>
+      <ThemeContext value={{ theme, setTheme }}>
         {children}
-      </ThemeContext.Provider>
-    </UserContext.Provider>
+      </ThemeContext>
+    </UserContext>
   );
 }
 ```
@@ -155,11 +156,11 @@ function AppProvider({ children }) {
   
   // dispatch never changes - no re-renders
   return (
-    <StateContext.Provider value={state}>
-      <DispatchContext.Provider value={dispatch}>
+    <StateContext value={state}>
+      <DispatchContext value={dispatch}>
         {children}
-      </DispatchContext.Provider>
-    </StateContext.Provider>
+      </DispatchContext>
+    </StateContext>
   );
 }
 
@@ -1489,12 +1490,12 @@ Use TanStack Query instead of Redux/Zustand for server state.
 A: Multiple strategies:
 ```jsx
 // 1. Split contexts
-<UserContext.Provider>
-  <ThemeContext.Provider>
+<UserContext value={userData}>
+  <ThemeContext value={themeData}>
 
 // 2. Separate state and dispatch
-<StateContext.Provider>
-  <DispatchContext.Provider>
+<StateContext value={state}>
+  <DispatchContext value={dispatch}>
 
 // 3. Use selectors (external library)
 const name = useContextSelector(ctx, s => s.user.name);
@@ -1675,7 +1676,7 @@ const [isOpen, setIsOpen] = useState(false);
 const [state, send] = useMachine(checkoutMachine);
 
 // 5. Context for rarely-changing values
-<ThemeContext.Provider value={theme}>
+<ThemeContext value={theme}>
 ```
 
 This covers 95% of use cases efficiently.
@@ -1684,4 +1685,4 @@ This covers 95% of use cases efficiently.
 
 **Last Updated: January 2026 - React 19**
 
-*See also: [React Hooks](./03-hooks.md) | [Performance](./11-profiler-performance.md) | [Suspense](./12-suspense-concurrent.md) | [Testing](./13-testing.md)*
+*See also: [React Hooks](./02-hooks-complete-guide.md) | [Performance](./11-profiler-performance.md) | [Suspense](./12-suspense-concurrent.md) | [Testing](./13-testing.md)*

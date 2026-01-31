@@ -1396,4 +1396,4 @@ Key principles:
 
 **Last Updated: January 2026 - React 19**
 
-*See also: [React Hooks](./03-hooks.md) | [Performance](./11-profiler-performance.md) | [Suspense](./12-suspense-concurrent.md)*
+*See also: [React Hooks](./02-hooks-complete-guide.md) | [Performance](./11-profiler-performance.md) | [Suspense](./12-suspense-concurrent.md)*

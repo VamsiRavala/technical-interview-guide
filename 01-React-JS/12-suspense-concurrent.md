@@ -1233,4 +1233,4 @@ Choose useDeferredValue when receiving props, useTransition when managing state.
 
 **Last Updated: January 2026 - React 19**
 
-*See also: [React Hooks](./03-hooks.md) | [Performance](./11-profiler-performance.md) | [Server Components](./09-server-components.md)*
+*See also: [React Hooks](./02-hooks-complete-guide.md) | [Performance](./11-profiler-performance.md) | [Error Boundaries](./09-error-boundaries.md)*
