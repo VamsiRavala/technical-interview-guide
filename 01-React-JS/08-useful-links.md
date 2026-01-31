@@ -1,0 +1,3 @@
+- https://medium.com/javascript-in-plain-english/react-basics-that-most-developers-get-wrong-interview-questions-fixes-you-need-to-know-1059eb090c9d
+- https://www.greatfrontend.com/blog/100-react-interview-questions-straight-from-ex-interviewers
+- https://nishchay.online/blog/react-interview-guide-intro?id=68afdf5f293baa3a190b524f
