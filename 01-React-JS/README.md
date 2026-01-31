@@ -1,6 +1,6 @@
 # React.js — Complete Interview Preparation Guide
 
-> A comprehensive resource covering React fundamentals, advanced concepts, hooks, architecture, and interview questions.
+> **Updated for React 19 (2026)** - A comprehensive resource covering React fundamentals, advanced concepts, hooks, architecture, and interview questions.
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### Core Concepts
 1. **[Fundamentals](01-fundamentals.md)** - What is React, DOM, Virtual DOM, and core concepts
-2. **[Hooks Complete Guide](02-hooks-complete-guide.md)** - Comprehensive guide to all React Hooks with examples
+2. **[Hooks Complete Guide](02-hooks-complete-guide.md)** - Comprehensive guide to all React Hooks including React 19 hooks
 3. **[Virtual DOM & Reconciliation](03-virtual-dom-reconciliation.md)** - Deep dive into diffing and reconciliation
 4. **[Authentication & Authorization](04-authentication-authorization.md)** - Security patterns in React
 
@@ -17,6 +17,15 @@
 6. **[100 Interview Questions](06-interview-questions-100.md)** - Comprehensive interview question bank
 7. **[Commands Reference](07-commands-reference.md)** - Common React commands and CLI usage
 8. **[Useful Links](08-useful-links.md)** - External resources and references
+
+### Advanced Topics (React 19)
+9. **[Error Boundaries](09-error-boundaries.md)** 🆕 - Error handling and fallback UI patterns
+10. **[Portals](10-portals.md)** 🆕 - Rendering components outside the DOM hierarchy
+11. **[Profiler & Performance](11-profiler-performance.md)** 🆕 - Performance optimization and profiling
+12. **[Suspense & Concurrent Features](12-suspense-concurrent.md)** 🆕 - Suspense, transitions, and concurrent rendering
+13. **[Testing Best Practices](13-testing.md)** 🆕 - Testing with React Testing Library and Vitest
+14. **[State Management 2026](14-state-management-2026.md)** 🆕 - Modern state management landscape
+15. **[React 19 Migration Guide](15-migration-guide-react-19.md)** 🆕 - Upgrade guide from React 18 to 19
 
 ### Architecture & Best Practices
 - **[Architecture Folder](architecture/)** - Contains:
@@ -57,22 +66,28 @@
 - Component-based architecture
 - Declarative programming model
 - Virtual DOM for efficient updates
+- **React 19**: With React Compiler for auto-optimization
 
 ### Core Features
 - **Components**: Reusable UI building blocks
 - **Props & State**: Data flow and management
 - **Hooks**: Function-based component logic
-- **Context**: Global state management
-- **Lifecycle**: Component lifecycle management
+- **Context**: Global state management (no more `.Provider` in React 19)
+- **Server Components**: Zero-bundle server-rendered components
+- **Actions**: Built-in form handling and optimistic updates
 
-### Essential Hooks
+### Essential Hooks (Including React 19)
 - `useState` - State management
 - `useEffect` - Side effects
 - `useContext` - Context consumption
 - `useReducer` - Complex state logic
-- `useMemo` - Performance optimization
-- `useCallback` - Function memoization
+- `useMemo` - Performance optimization (less needed with React Compiler)
+- `useCallback` - Function memoization (less needed with React Compiler)
 - `useRef` - DOM references and mutable values
+- **`use()`** 🆕 - Read context and promises
+- **`useActionState()`** 🆕 - Form state management
+- **`useOptimistic()`** 🆕 - Optimistic updates
+- **`useFormStatus()`** 🆕 - Form submission status
 
 ---
 
