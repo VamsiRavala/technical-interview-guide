@@ -286,3 +286,223 @@ await Host.CreateDefaultBuilder(args)
 - Wire cross‑cutting concerns (logging, options, caching) via DI.
 
 ---
+
+Pattern	Type	Use in Microservices Example
+Singleton	Creational	ML.NET forecast service
+Factory	Creational	Dynamic promotion rules
+Dependency Injection (DI)	Creational	Injecting repositories/services
+Repository	Structural	Separate DB access from business logic
+Observer	Behavioral	Notify inventory/analytics services
+Circuit Breaker	Behavioral	Prevent cascading API failures
+1. Repository Pattern
+
+Purpose: Abstracts database access, keeps data logic separate from business logic.
+
+When to use: In your microservices for PPM, when accessing SQL Server for promotions or forecast data.
+
+Example in .NET Core:
+
+public interface IPromotionRepository
+{
+    Task<Promotion> GetPromotionByIdAsync(int id);
+    Task AddPromotionAsync(Promotion promotion);
+}
+
+public class PromotionRepository : IPromotionRepository
+{
+    private readonly AppDbContext _context;
+    public PromotionRepository(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Promotion> GetPromotionByIdAsync(int id)
+    {
+        return await _context.Promotions.FindAsync(id);
+    }
+
+    public async Task AddPromotionAsync(Promotion promotion)
+    {
+        await _context.Promotions.AddAsync(promotion);
+        await _context.SaveChangesAsync();
+    }
+}
+
+
+How to explain in interview:
+"I use the Repository Pattern to keep database access separate from business logic. It makes the code more maintainable and testable."
+
+2. Singleton Pattern
+
+Purpose: Ensure a class has only one instance and provide a global access point.
+
+When to use: For shared services like configuration, logging, or API clients in your microservices.
+
+Example in .NET Core:
+
+public class ForecastService
+{
+    private static ForecastService _instance;
+    private ForecastService() { }
+
+    public static ForecastService Instance
+    {
+        get
+        {
+            if (_instance == null)
+                _instance = new ForecastService();
+            return _instance;
+        }
+    }
+
+    public double PredictSales(int promotionId)
+    {
+        // ML.NET forecast logic
+        return 1000; 
+    }
+}
+
+
+Interview tip:
+"I use Singleton for services like ML.NET forecast or configuration, where only one instance is needed across the service."
+
+3. Factory Pattern
+
+Purpose: Creates objects without exposing instantiation logic.
+
+When to use: If you have multiple types of promotion strategies or pricing rules.
+
+Example:
+
+public interface IPromotionStrategy
+{
+    double CalculateDiscount(double price);
+}
+
+public class CorporatePromotion : IPromotionStrategy
+{
+    public double CalculateDiscount(double price) => price * 0.1;
+}
+
+public class DivisionPromotion : IPromotionStrategy
+{
+    public double CalculateDiscount(double price) => price * 0.05;
+}
+
+public class PromotionFactory
+{
+    public static IPromotionStrategy GetPromotionStrategy(string type)
+    {
+        return type switch
+        {
+            "Corporate" => new CorporatePromotion(),
+            "Division" => new DivisionPromotion(),
+            _ => throw new ArgumentException("Invalid type"),
+        };
+    }
+}
+
+
+Interview tip:
+"I use the Factory Pattern to dynamically select promotion calculation logic based on corporate or division rules."
+
+4. Dependency Injection (DI) Pattern
+
+Purpose: Inject dependencies rather than creating them manually; improves testability and maintainability.
+
+When to use: In all .NET Core microservices, for repositories, services, or external API clients.
+
+Example:
+
+public class PromotionService
+{
+    private readonly IPromotionRepository _repository;
+    public PromotionService(IPromotionRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<Promotion> GetPromotion(int id)
+    {
+        return await _repository.GetPromotionByIdAsync(id);
+    }
+}
+
+// In Startup.cs
+services.AddScoped<IPromotionRepository, PromotionRepository>();
+services.AddScoped<PromotionService>();
+
+
+Interview tip:
+"I use Dependency Injection everywhere in microservices to keep code modular and easily testable."
+
+5. Circuit Breaker Pattern
+
+Purpose: Prevent cascading failures in microservices by stopping repeated calls to a failing service.
+
+When to use: When calling external APIs or services like downstream promotion or pricing services.
+
+Example (using Polly):
+
+services.AddHttpClient("PricingService")
+    .AddTransientHttpErrorPolicy(p => 
+        p.CircuitBreakerAsync(handledEventsAllowedBeforeBreaking: 3, durationOfBreak: TimeSpan.FromSeconds(30)));
+
+
+Interview tip:
+"I use Circuit Breaker in microservices to handle transient failures gracefully and prevent system-wide downtime."
+
+6. Observer Pattern
+
+Purpose: Allows a service to notify multiple subscribers of an event.
+
+When to use: For event-driven microservices, e.g., notifying downstream systems when a promotion is published.
+
+Example:
+
+public interface IPromotionObserver
+{
+    void Update(Promotion promotion);
+}
+
+public class InventoryService : IPromotionObserver
+{
+    public void Update(Promotion promotion)
+    {
+        // Update inventory based on new promotion
+    }
+}
+
+public class PromotionPublisher
+{
+    private readonly List<IPromotionObserver> _observers = new();
+    public void Subscribe(IPromotionObserver observer) => _observers.Add(observer);
+    public void Publish(Promotion promotion)
+    {
+        foreach(var observer in _observers)
+            observer.Update(promotion);
+    }
+}
+
+
+Interview tip:
+"I use the Observer Pattern for event notifications between microservices, like updating inventory or analytics when a promotion goes live."
+
+✅ How to present in an interview:
+
+You can say:
+*"In my current project modernizing Kroger’s ESP system, I use several design patterns in our .NET Core microservices:
+
+Repository Pattern for clean database access,
+
+Singleton for shared services like ML.NET forecast,
+
+Factory for dynamic promotion rules,
+
+Dependency Injection for testable and maintainable code,
+
+Circuit Breaker for reliable API calls, and
+
+Observer for event-driven updates across microservices.
+
+These patterns help keep the system scalable, maintainable, and resilient."*
