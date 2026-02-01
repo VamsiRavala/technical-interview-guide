@@ -1,3 +1,0 @@
-# basics
-
-Content coming soon...
