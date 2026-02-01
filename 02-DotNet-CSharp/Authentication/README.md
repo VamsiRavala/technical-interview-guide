@@ -1,3 +1,0 @@
-# Authentication
-
-Content coming soon...
