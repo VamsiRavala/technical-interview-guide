@@ -1,95 +1,112 @@
-# React JS  
+# Quick Review
 
-- **Fundamentals**: Understanding the basic building blocks like components, props, and state in React.  
-- **Hooks**: Utilizing built-in hooks like useState and useEffect for managing state and lifecycle methods.  
-- **Virtual DOM**: A lightweight representation of the actual DOM to enhance performance and efficiency.  
-- **Reconciliation**: Process of updating the DOM efficiently by comparing previous and current states.  
-- **Authentication**: Handling user authentication using context and hooks.  
-- **Error Boundaries**: Components that catch JavaScript errors in their child component tree.  
-- **Portals**: Rendering children into a DOM node outside of its parent component.  
-- **Testing**: Writing unit and integration tests using tools like Jest and React Testing Library.  
-- **Performance**: Techniques for optimizing performance, including memoization and lazy loading.  
-- **Suspense**: A feature for handling loading states in asynchronous components.  
-- **State Management**: Using Context API and libraries like Redux for global state management.  
+## React JS
+- **Fundamentals**: React is a JavaScript library for building user interfaces.
+- **Hooks: useState**: Helps to add state to functional components.
+  ```javascript
+  const [count, setCount] = useState(0);
+  ```
+- **Hooks: useEffect**: Allows side effects in functional components.
+  ```javascript
+  useEffect(() => {
+      // Do something
+  }, [dependencies]);
+  ```
+- **Virtual DOM**: A lightweight copy of the real DOM used for efficient updates.
+- **Reconciliation**: The process React uses to update the DOM.
+- **JSX**: A syntax extension for JavaScript that looks similar to XML.
+  ```javascript
+  const element = <h1>Hello, world!</h1>;
+  ```
+- **Props**: Short for properties, used to pass data to components.
+- **Components**: Independent, reusable pieces of UI.
+- **Error Boundaries**: A React component that catches JavaScript errors.
+- **Portals**: Allow rendering children into a DOM node that exists outside the DOM hierarchy.
+- **Context API**: A way to share values between components without passing props through every level.
 
-# .NET Web APIs  
+## .NET Web APIs and C# (OOP concepts)
+- **Encapsulation**: BankAccount class with private balance.
+  ```csharp
+  public class BankAccount {
+      private decimal balance;
+      public void Deposit(decimal amount) { balance += amount; }
+      public decimal GetBalance() { return balance; }
+  }
+  ```
+- **Inheritance**: Animal and Dog classes.
+  ```csharp
+  public class Animal { }
+  public class Dog : Animal { }
+  ```
+- **Polymorphism**: Using virtual MakeSound method.
+  ```csharp
+  public class Animal { public virtual void MakeSound() { } }
+  public class Dog : Animal { public override void MakeSound() { } }
+  ```
+- **Abstraction**: Abstract Shape class.
+  ```csharp
+  public abstract class Shape { public abstract double Area(); }
+  public class Circle : Shape { public override double Area() { return Math.PI * radius * radius; } }
+  ```
+- **Interface**: ILogger and FileLogger implementation.
+  ```csharp
+  public interface ILogger { void Log(string message); }
+  public class FileLogger : ILogger { public void Log(string message) { } }
+  ```
+- **Sealed class**: Cannot be inherited.
+- **var/dynamic/object**: Implicit typing.
+- **Value vs Reference types**: Understanding their behavior.
+- **ThreadPool, async/await**: Managing asynchronous programming.
+- **REST API**: Example
+  ```csharp
+  [HttpPost]
+  public IActionResult Create([FromBody] Item item) { }
+  ```
+- **Entity Framework**: DbContext, Migrations, LINQ Query.
+- **Lazy/Eager Loading**: Virtual keyword and Include method.
+- **Dependency Injection**: Managing dependencies effectively.
 
-- **C# Fundamentals**: Grasping basic syntax, types, and constructs in C#.  
-- **Sealed Classes**: Creating classes that cannot be inherited for better security and performance.  
-- **ThreadPool**: Managing a pool of threads for concurrent processing.  
-- **Variables**: Using variable types correctly for optimal memory management.  
-- **OOP**: Object-Oriented Programming principles like encapsulation, inheritance, and polymorphism.  
-- **REST**: Building RESTful services that adhere to stateless communication and client-server architecture.  
-- **Entity Framework**: An ORM framework for working with databases using C#.  
-- **EF Core 9**: The latest version of Entity Framework offering features like performance improvements and new APIs.  
-- **Native AOT**: Native Ahead-of-Time compilation for enhanced performance.  
-- **Migrations**: Managing database schema changes in an organized way.  
-- **Concurrency**: Handling simultaneous operation on resources safely.  
-- **Lazy Loading**: Delaying the loading of related data until it is specifically requested.  
-- **LINQ**: Language Integrated Query for data manipulation.  
-- **Security**: Implementing security measures against XSS, SQL Injection, and adhering to OWASP standards.  
-- **Authentication**: Implementing authentication mechanisms.  
-- **Authorization**: Controlling user access to resources.  
+## Azure
+- **Functions**: HTTP via Function.
+  ```javascript
+  public static async Task<IActionResult> Run(HttpRequest req, ILogger log) { }
+  ```
+- **Durable Functions orchestration**: Managing state across function executions.
+- **Service Bus queue**: Messaging between services.
+- **Event Hubs, Event Grid**: Event-driven architecture.
+- **Cosmos DB**: Creating and querying databases.
+- **Storage Blob upload**: Interacting with Azure Blob Storage.
+- **Storage Queue**: Reliable message queuing.
 
-# Azure  
+## Microservices
+- **REST communication**: Building microservices with REST.
+- **gRPC**: High-performance RPC framework.
+- **API Gateway**: Centralized management.
+- **Circuit Breaker**: Using Polly for fault tolerance.
+- **CQRS**: Command-query responsibility segregation.
+- **Saga**: Managing distributed transactions.
+- **Database per Service**: Each service manages its own data.
 
-- **Core Concepts**: Understanding Azure's fundamental building components and services.  
-- **Availability**: Ensuring services are consistently operational and accessible.  
-- **Reliability**: Achieving dependability of services through built-in fault tolerances.  
-- **Scalability**: Adjusting resources as application loads change.  
-- **Resilience**: Building applications that can handle unexpected disruptions.  
-- **Regions**: Azure's data center locations for hosting services.  
-- **Availability Zones**: Physically separated locations within an Azure region for increased fault tolerance.  
-- **Azure Functions**: A serverless compute service that enables code execution without managing infrastructure.  
-- **Durable Functions**: Designing stateful functions in a serverless environment.  
-- **Service Bus**: A messaging service for connecting applications and services.  
-- **Event Hubs**: A big data streaming platform for processing millions of events.  
-- **Event Grid**: A service for managing events across Azure resources.  
-- **Storage Account**: A container for Azure's storage services.  
-- **Storage Queue**: A messaging service for queue storage.  
-- **Cosmos DB**: A globally-distributed, multi-model database service.  
-- **Notification Hubs**: A service for sending push notifications to any platform.  
+## JavaScript
+- **var/let/const**: Variable declarations.
+- **Functions**: Defining reusable code.
+- **Arrow functions**: Concise syntax.
+  ```javascript
+  const add = (a, b) => a + b;
+  ```
+- **Objects, Arrays, Map, Set**: Data structures in JS.
+- **Callbacks, Promises**: Handling asynchronous operations.
+- **Async/Await**: Simplified syntax for promises.
+- **Closures, Destructuring, Spread operator**: Advanced concepts.
 
-# Microservices  
-
-- **Communication Patterns**: Understanding synchronous and asynchronous communication between microservices.  
-- **REST**: Implementing RESTful APIs for microservice communication.  
-- **gRPC**: Utilizing gRPC for high-performance RPC communications.  
-- **GraphQL**: A query language for APIs, providing a more efficient alternative to REST.  
-- **Design Patterns**: Establishing common patterns like API Gateway and Circuit Breaker for microservice architecture.  
-- **CQRS**: Separating read and write operations for better scalability and performance.  
-- **Saga**: A pattern for managing distributed transactions.  
-- **Database per Service**: Separating the database for each microservice for better independence.  
-- **Service Discovery**: Mechanism for services to locate each other in a microservices architecture.  
-- **Observability**: Implementing monitoring and logging for better insight into the system's health.  
-- **Security**: Ensuring communications and data exchanges are secure between microservices.  
-- **Testing**: Writing effective tests for microservices components and interactions.  
-
-# JavaScript  
-
-- **Syntax**: Mastering the syntax rules for writing JavaScript code.  
-- **ES5/ES6**: Understanding different versions of JavaScript and their features.  
-- **Babel**: Transpiling modern JavaScript to widely-supported versions.  
-- **Variables**: Leveraging variable declarations like var, let, and const for data storage.  
-- **var/let/const**: Understanding scoping rules and hoisting in variable declaration.  
-- **Functions**: Defining reusable blocks of code using function declarations and expressions.  
-- **Arrow Functions**: Utilizing concise syntax for function expressions.  
-- **Objects**: Using objects to encapsulate data and behavior together.  
-- **Arrays**: Leveraging arrays for storing ordered collections of data.  
-- **Map/Set**: Utilizing Map and Set objects for unique collections.  
-- **Callbacks**: Using functions as arguments for handling asynchronous operations.  
-- **Async/Await**: Simplifying asynchronous code through modern syntax.  
-- **Promises**: Handling asynchronous operations using promise objects.  
-- **Closures**: Understanding closures to maintain state in functions.  
-- **Currying**: Transforming functions to carry parameters incrementally.  
-- **Prototypes**: Leveraging JavaScript's prototype-based inheritance.  
-
-# SQL  
-
-- **Joins**: Combining rows from two or more tables based on related columns.  
-- **Indexes**: Improving query performance by creating index structures.  
-- **Normalization**: Organizing database schemas to reduce redundancy.  
-- **Transactions**: Ensuring data integrity for operations by applying transactions.  
-- **Stored Procedures**: Writing precompiled database queries for reusability.  
-- **Views**: Creating virtual tables as stored queries for simplified access.  
-- **Performance Tuning**: Optimizing database performance for better response times.
+## SQL
+- **SELECT, INNER JOIN, LEFT JOIN**: Querying data.
+  ```sql
+  SELECT * FROM Users INNER JOIN Orders ON Users.Id = Orders.UserId;
+  ```
+- **INSERT, UPDATE, DELETE**: Modifying data.
+  ```sql
+  INSERT INTO Users (Name) VALUES ('John');
+  ```
+- **Indexes, Stored Procedures**: Performance optimization.
+- **Transactions, Views**: Data integrity and abstraction.
