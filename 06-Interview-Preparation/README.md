@@ -64,6 +64,24 @@ Before starting, assess your current level:
 
 ---
 
+## 🎯 Specialized Career Paths
+
+### For Senior/Principal Level (10+ years experience)
+If you're targeting senior/principal roles at Amazon (L6/L7) or Microsoft (63-66) with $170K+ compensation:
+
+👉 **See our comprehensive guide**: [Senior/Principal FAANG Roadmap](senior-principal-faang-roadmap.md)
+
+This specialized path focuses on:
+- ✅ Algorithm mastery (200-300 LeetCode problems)
+- ✅ System design at scale (critical at this level)
+- ✅ Architecture depth beyond full-stack
+- ✅ Leadership & behavioral (Amazon Leadership Principles)
+- ✅ 3-6 month structured preparation timeline
+
+**Key Difference**: At senior/principal level, system design and leadership matter MORE than coding, but you still must pass rigorous algorithm rounds.
+
+---
+
 ## 🎯 Study Approach
 
 ### 1. Theory (40%)
