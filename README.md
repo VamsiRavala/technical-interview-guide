@@ -1,100 +1,106 @@
-# 🚀 Technical Interview Preparation Guide
+# Technical Interview Guide
 
-> Comprehensive resources for technical interview preparation across modern web technologies and cloud platforms
-
----
-
-## 📚 What's Inside
-
-This repository contains structured learning paths and interview preparation materials for:
-
-### 💻 Technologies
-- **[React.js](01-React-JS/)** - Modern frontend with React 19
-- **[.NET & C#](02-DotNet-CSharp/)** - Backend development with .NET
-- **[Azure](03-Azure/)** - Cloud services and architecture
-- **[Microservices](04-Microservices/)** - Distributed systems design
-- **[JavaScript](05-JavaScript/)** - Core language fundamentals
-
-### 🎯 Interview Preparation
-- **[General Study Plan](06-Interview-Preparation/)** - 8-12 week comprehensive plan
-- **[Senior/Principal FAANG Track](06-Interview-Preparation/senior-principal-faang-roadmap.md)** - For 10+ years experience targeting $170K+ roles
+A comprehensive guide to mastering data structures and algorithms for technical interviews, with examples in both **JavaScript** and **C#**.
 
 ---
 
-## 🚀 Quick Start
+## 📚 Table of Contents
 
-### For Early Career (0-3 years)
-Start with the [General Study Plan](06-Interview-Preparation/study-plan.md) and focus on:
-1. JavaScript fundamentals
-2. React or .NET (based on role)
-3. Basic system design
-4. 100-150 LeetCode problems
+### Must Know Basics
+- [C# Collections Overview](./docs/csharp-collections.md)
+- [JavaScript Data Structures Overview](./docs/javascript-basics.md)
+- [Recursion](./docs/recursion.md)
 
-### For Mid-Level (3-7 years)
-Follow the [General Study Plan](06-Interview-Preparation/study-plan.md) with emphasis on:
-1. Advanced algorithms (DP, graphs)
-2. System design fundamentals
-3. Cloud architecture (Azure)
-4. 150-200 LeetCode problems
+### Phase 1 - Core Patterns
+1. [Arrays & Strings](./docs/01-arrays-strings.md)
+2. [Hashing](./docs/02-hashing.md)
+3. [Two Pointers](./docs/03-two-pointers.md)
+4. [Sliding Window](./docs/04-sliding-window.md)
 
-### For Senior/Principal (10+ years)
-Use the **[Senior/Principal FAANG Roadmap](06-Interview-Preparation/senior-principal-faang-roadmap.md)** focusing on:
-1. Algorithm interview mastery (200-300 problems)
-2. **System design** (primary differentiator)
-3. Architecture depth & cloud expertise
-4. Leadership & behavioral preparation
+### Phase 2 - Data Structures
+5. [Stack & Queue](./docs/05-stack-queue.md)
+6. [Binary Search](./docs/06-binary-search.md)
+7. [Linked List](./docs/07-linked-list.md)
 
----
+### Phase 3 - Trees & Graphs
+8. [Trees](./docs/08-trees.md)
+9. [Graphs](./docs/09-graphs.md)
 
-## 📖 How to Use This Repository
-
-1. **Assess Your Level**: Determine your experience and target role
-2. **Choose Your Path**: Select appropriate study plan
-3. **Follow the Structure**: Each section builds on previous knowledge
-4. **Practice Consistently**: Combine theory with hands-on practice
-5. **Track Progress**: Use provided checklists and milestones
+### Phase 4 - Advanced Topics
+10. [Backtracking](./docs/10-backtracking.md)
+11. [Dynamic Programming](./docs/11-dynamic-programming.md)
+12. [Greedy Algorithms](./docs/12-greedy.md)
+13. [Heap & Priority Queue](./docs/13-heap-priority-queue.md)
+14. [Trie](./docs/14-trie.md)
+15. [Union Find](./docs/15-union-find.md)
+16. [Bit Manipulation](./docs/16-bit-manipulation.md)
 
 ---
 
-## 🎓 Learning Approach
+## 🎯 How to Use This Guide
 
-### 40% Theory
-- Read documentation and guides
-- Watch tutorials
-- Take detailed notes
-
-### 40% Practice
-- Solve coding challenges
-- Build projects
-- Implement patterns
-
-### 20% Review
-- Mock interviews
-- Peer discussions
-- Concept explanation practice
+1. **Start with the basics** - Make sure you understand C# collections and JavaScript fundamentals
+2. **Follow the phases** - Each phase builds on the previous one
+3. **Practice actively** - Don't just read, implement each example
+4. **Master patterns** - Focus on recognizing patterns rather than memorizing solutions
+5. **Build up** - Start with easy problems, then move to medium and hard
 
 ---
 
-## 🤝 Contributing
+## 🚀 Goal
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+**You should be able to implement any data structure manually.**
 
----
-
-## 📄 License
-
-This project is licensed under the terms specified in [LICENSE](LICENSE).
+Understanding the underlying implementation is crucial for interviews.
 
 ---
 
-## 🌟 About
+## 📊 Progress Tracker
 
-Created and maintained for helping developers prepare for technical interviews at top-tier companies. Whether you're just starting out or aiming for senior/principal roles at FAANG, this guide provides structured learning paths tailored to your experience level.
+Track your progress as you complete each section:
 
-**Target Companies**: Amazon, Microsoft, Google, Meta, Apple, and other top tech companies
-
-**Success Metric**: Help developers land roles with competitive compensation and strong technical foundations
+- [ ] Must Know Basics
+- [ ] Phase 1 - Core Patterns (Most Important)
+- [ ] Phase 2 - Data Structures
+- [ ] Phase 3 - Trees & Graphs
+- [ ] Phase 4 - Advanced Topics
 
 ---
 
-*Good luck with your interview preparation! 🚀*
+## 💡 Key Insights
+
+- **Hashing**: Master this and 30% of LeetCode becomes easy
+- **Sliding Window**: Solves 100+ problems alone
+- **Binary Search on Answer**: Game changer for optimization problems
+- **Trees**: Just recursion + pattern recognition
+- **Dynamic Programming**: If recursion has overlapping subproblems → DP
+
+---
+
+## 📝 Interview Tips
+
+1. **Clarify the problem** - Ask questions before coding
+2. **Think out loud** - Explain your approach
+3. **Start with brute force** - Then optimize
+4. **Test your code** - Walk through examples
+5. **Analyze complexity** - Always discuss time and space complexity
+
+---
+
+## 🛠️ Setup
+
+### C# (.NET 6+)
+```csharp
+// Make sure you have .NET 6+ installed for PriorityQueue support
+dotnet --version
+```
+
+### JavaScript (Node.js)
+```javascript
+// Modern JavaScript (ES6+)
+node --version
+```
+
+---
+
+Happy Coding! 🎉
