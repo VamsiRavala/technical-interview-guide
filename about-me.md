@@ -1,9 +1,9 @@
 # About Me
 
-Hi, I’m Vamsi. I’m a .NET Lead with 13 years of experience. I’m based in the US for over 3 years, and prior to that, I worked in India.
+Hi, I’m Vamsi. I have 13 years of experience in .NET, and I’ve been in the US for the past 3 years. Before that, I worked in India.
 
-I currently work with Kroger, where I initially supported a legacy Enterprise Sales Promotion (ESP) system built with VB6 and DB2. My responsibilities included production support, bug fixes, enhancement requests, performance improvements, and ensuring overall system stability.
+Right now, I work with Kroger. In the beginning, I worked on an old system called ESP, which was built using VB6 and DB2. My job was to support the system, fix issues, handle small changes, improve performance, and make sure everything runs smoothly.
 
-For the past 8 months, I am working on modernizing the ESP system, called PPM, using .NET Core Web APIs, microservices, React, SQL Server, and ML.NET for forecast analysis. The project follows Agile and is delivered in phases.
+For the last 8 months, I’ve been working on upgrading this system to a new one called PPM. We are using modern technologies like .NET Core APIs, microservices, React, SQL Server, and ML.NET. We follow Agile and also use AI-driven development with tools like Copilot to improve productivity and code quality.
 
-As a .NET Lead, I handle end-to-end delivery, lead the team, design and build secure APIs, manage GitHub workflows for deployment, and collaborate closely with QA and product owners to deliver high-quality solutions on time.
+As a .NET Lead, I manage the full project, guide my team, design and build APIs, handle deployments using GitHub, and work closely with QA and product teams to deliver quality work on time.
