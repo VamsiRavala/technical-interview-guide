@@ -20,6 +20,12 @@
 
 ---
 
+## 🏬 End-to-End Application Guide
+
+12. **[Promotion Management — Full Interview Prep](../docs/promotion-management-dotnet-azure.md)** — Complete end-to-end guide: React SPA → Azure AD → APIM → .NET Core API → Service Bus → Cosmos DB → AKS. Covers domain design, REST API, SQL queries, CI/CD with GitHub Actions, Kubernetes, observability, and an interview cheat-sheet with 24-hour study plan. *(Retail/POS domain)*
+
+---
+
 ## 🎯 Learning Path
 
 ### Beginner (Week 1-2)
