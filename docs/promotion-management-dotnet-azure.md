@@ -1,3943 +1,4793 @@
 # Complete Study Material: Promotions Management System
-## High-Level Architecture, Design & Concepts Focus
+## .NET + Azure + Microservices + Retail/POS Interview Guide
 
 ---
 
 # TABLE OF CONTENTS
 
-1. [System Architecture Overview](#1-system-architecture-overview)
-2. [Microservices Design Patterns](#2-microservices-design-patterns)
-3. [Azure Services - When & Why](#3-azure-services)
-4. [API Design & Management](#4-api-design--management)
-5. [Database Strategy](#5-database-strategy)
-6. [Event-Driven Architecture](#6-event-driven-architecture)
-7. [DevOps & CI/CD Strategy](#7-devops--cicd-strategy)
-8. [Docker & Kubernetes](#8-docker--kubernetes)
-9. [Security Architecture](#9-security-architecture)
-10. [React Frontend Architecture](#10-react-frontend-architecture)
-11. [Retail Domain / POS Knowledge](#11-retail-domain--pos)
-12. [Monitoring & Observability](#12-monitoring--observability)
-13. [Interview Q&A - 100+ Questions](#13-interview-qa)
-14. [System Design Scenarios](#14-system-design-scenarios)
+1. [Introduction](#introduction)
+2. [System Architecture Overview](#1-system-architecture-overview)
+3. [Microservices Design Patterns](#2-microservices-design-patterns)
+4. [Azure Services - When & Why](#3-azure-services---when--why)
+5. [API Design & Management](#4-api-design--management)
+6. [Database Strategy](#5-database-strategy)
+7. [Event-Driven Architecture](#6-event-driven-architecture)
+8. [DevOps & CI/CD Strategy](#7-devops--cicd-strategy)
+9. [Docker & Kubernetes](#8-docker--kubernetes)
+10. [Security Architecture](#9-security-architecture)
+11. [React Frontend Architecture](#10-react-frontend-architecture)
+12. [Retail Domain / POS Knowledge](#11-retail-domain--pos-knowledge)
+13. [Monitoring & Observability](#12-monitoring--observability)
+14. [Interview Q&A](#13-interview-qa)
+15. [System Design Scenarios](#14-system-design-scenarios)
+16. [Final Preparation Tips](#15-final-preparation-tips)
+
+---
+
+# INTRODUCTION
+
+This document is a complete interview preparation guide for designing and explaining a **Promotions Management System** using **.NET, Azure, microservices, event-driven architecture, and modern frontend/backend practices**.
+
+The goal is not only to memorize terms, but to deeply understand:
+
+- why each component exists,
+- how services interact,
+- where trade-offs appear,
+- how to explain architecture decisions in interviews,
+- how the system behaves under failure and scale,
+- and how cloud, domain, and operational concerns fit together.
+
+This guide is especially useful for roles involving:
+
+- .NET backend development
+- Azure cloud architecture
+- microservices design
+- API design and integration
+- event-driven systems
+- CI/CD and DevOps
+- retail / POS / promotions platforms
+- technical interviews and system design rounds
 
 ---
 
 # 1. SYSTEM ARCHITECTURE OVERVIEW
 
-## 1.1 Complete System Flow
+## 1.1 Business Goal of the System
 
-**Promotions Management System - High Level Data Flow:**
+A Promotions Management System allows business users to create, approve, activate, distribute, monitor, and retire promotions across stores, channels, and POS systems.
 
-• User creates promotion in React UI
-• Request goes through Azure CDN/WAF for security
-• Azure API Management (APIM) acts as single entry point
-• APIM handles authentication, rate limiting, request validation
-• Request routed to appropriate microservice based on endpoint
-• Microservice processes business logic
-• Data persisted in appropriate database (SQL or Cosmos DB)
-• Domain event published to Azure Service Bus
-• Event triggers downstream services asynchronously
-• Analytics service updates read models
-• Notification service sends alerts
-• Store service syncs with POS terminals
-• React UI updates in real-time via SignalR or polling
+Typical examples of promotions:
 
-## 1.2 Microservice Decomposition
+- 10% off selected products
+- Buy One Get One Free
+- Flat $5 off above $50 cart value
+- Region-specific campaigns
+- Loyalty-based promotions
+- Time-bound seasonal promotions
+- Store-specific markdown campaigns
 
-**Core Microservices in Promotions System:**
+This system must balance:
 
-• **Promotion Service**: CRUD operations, lifecycle management (Draft → Active → Expired), business rule validation, promotion templates, campaign management
+- **business flexibility** for marketing teams
+- **correctness** in pricing and redemption
+- **speed** at checkout and in APIs
+- **reliability** across distributed systems
+- **auditability** for compliance
+- **scalability** during traffic spikes like Black Friday
 
-• **Pricing Engine**: Real-time price calculation, discount application, conflict resolution when multiple promotions apply, price history tracking, margin validation
+---
 
-• **Store Service**: Store master data, store grouping, POS terminal mapping, store-specific rules, regional configurations, store hierarchy
+## 1.2 High-Level Architecture
 
-• **Identity Service**: User authentication (OAuth 2.0/OIDC), role-based access control (RBAC), permission management, audit logging, multi-tenancy support
+At a high level, the system consists of:
 
-• **Analytics Service**: Redemption tracking, ROI calculation, performance metrics, trend analysis, reporting, dashboards, data warehousing
+- **React frontend** for business users and dashboards
+- **Azure API Management (APIM)** as the API gateway
+- **Multiple .NET microservices** for business domains
+- **Azure SQL + Cosmos DB + Redis** for data storage and performance
+- **Azure Service Bus** for asynchronous communication
+- **Azure Functions / Logic Apps** for background workflows
+- **AKS** for container orchestration
+- **Application Insights / Azure Monitor** for observability
 
-• **Notification Service**: Email notifications, SMS alerts, push notifications, in-app messages, POS alerts, escalation rules
+### High-Level Flow
 
-• **Integration Service**: External system integration, POS sync, ERP connectivity, legacy system bridges, webhook management, third-party APIs
+1. User creates or updates a promotion from the UI.
+2. Request passes through CDN/WAF and APIM.
+3. APIM authenticates user and forwards request to Promotion Service.
+4. Promotion Service validates business rules and saves data.
+5. Domain event is written through Outbox and published to Service Bus.
+6. Downstream services such as Pricing, Store Sync, Analytics, and Notifications consume events.
+7. Store/POS systems receive relevant promotion changes.
+8. Dashboard and UI are updated through polling, SignalR, or refreshed read models.
 
-• **Approval Workflow Service**: Multi-level approval chains, escalation rules, SLA management, approval history, delegation support
+---
 
-## 1.3 Data Flow - Promotion Lifecycle
+## 1.3 End-to-End Request Flow
 
-**Promotion State Transitions:**
+### Example: Create and Activate a Promotion
 
-• **Draft** → Created by user, editable, not yet submitted
-• **Pending Approval** → Submitted for review, awaiting approver action
-• **Approved** → Passed all approvals, ready to activate
-• **Active** → Currently running, customers can redeem
-• **Paused** → Temporarily stopped, can be resumed
-• **Expired** → End date passed, no longer available
-• **Cancelled** → Manually cancelled by admin, no redemptions allowed
-• **Rejected** → Approval denied, can be edited and resubmitted
+Let’s walk through a realistic scenario.
 
-**Events Published at Each Transition:**
+A marketing manager creates a **Weekend 20% Off** promotion for multiple stores.
 
-• Draft → Pending: PromotionSubmittedEvent (triggers approval workflow)
-• Pending → Approved: PromotionApprovedEvent (updates cache, notifies team)
-• Approved → Active: PromotionActivatedEvent (syncs to POS, updates pricing)
-• Active → Expired: PromotionExpiredEvent (cleanup, archive data)
-• Active → Paused: PromotionPausedEvent (removes from POS, updates pricing)
-• Any → Cancelled: PromotionCancelledEvent (refund logic, audit trail)
+#### Step 1: UI Request
 
-## 1.4 Technology Stack Summary
+The React UI sends a request like:
 
-**Frontend Layer:**
-• React 18+ with TypeScript
-• Redux/Context API for state management
-• Material-UI or Ant Design for components
-• Axios/Fetch for API calls
-• SignalR for real-time updates
+```json
+{
+  "name": "Weekend 20% Off",
+  "type": "PercentageDiscount",
+  "discountValue": 20,
+  "startDate": "2026-06-06T00:00:00Z",
+  "endDate": "2026-06-08T00:00:00Z",
+  "storeIds": ["S001", "S002", "S003"],
+  "applicableProducts": ["SKU123", "SKU456"]
+}
+```
 
-**API Gateway Layer:**
-• Azure API Management (APIM)
-• Request/response transformation
-• Rate limiting and throttling
-• JWT token validation
-• API versioning and routing
+#### Step 2: API Gateway
 
-**Backend Services:**
-• .NET Core 8 (C#)
-• RESTful APIs with minimal APIs
-• gRPC for service-to-service communication
-• Entity Framework Core for ORM
+APIM performs:
 
-**Data Layer:**
-• Azure SQL Database (transactional data)
-• Cosmos DB (NoSQL for high-read scenarios)
-• Azure Blob Storage (documents, images)
-• Azure Redis Cache (caching layer)
+- JWT validation
+- throttling
+- request size validation
+- API version routing
+- optional request/response transformation
 
-**Messaging & Events:**
-• Azure Service Bus (queues and topics)
-• Apache Kafka (optional, for high-throughput scenarios)
-• Event Grid (for event routing)
+#### Step 3: Promotion Service
 
-**Serverless:**
-• Azure Functions (event processing, scheduled tasks)
-• Azure Logic Apps (approval workflows)
+Promotion Service performs:
 
-**Security:**
-• Azure Key Vault (secrets management)
-• Azure AD / Azure AD B2C (authentication)
-• Managed Identity (service-to-service auth)
+- request validation
+- duplicate/overlap checks
+- date validation
+- conflict checks
+- persistence to Azure SQL
+- audit log creation
+- outbox event creation
 
-**Containers & Orchestration:**
-• Docker (containerization)
-• Azure Kubernetes Service (AKS) for orchestration
-• Azure Container Registry (image storage)
+#### Step 4: Event Publication
 
-**CI/CD:**
-• Azure DevOps Pipelines or GitHub Actions
-• Infrastructure as Code (Terraform/ARM templates)
-• GitOps for deployment
+A `PromotionCreatedEvent` or `PromotionApprovedEvent` is published using the Outbox pattern.
 
-**Monitoring & Logging:**
-• Application Insights (APM)
-• Azure Monitor
-• Log Analytics
-• ELK Stack (optional)
+#### Step 5: Downstream Processing
+
+Other services react:
+
+- **Pricing Engine** updates pricing applicability rules
+- **Store Service** prepares POS distribution payload
+- **Notification Service** notifies approvers or stakeholders
+- **Analytics Service** updates reporting projections
+- **Cache refresh logic** invalidates stale promotion lists
+
+#### Step 6: Activation
+
+When approved and activated, the system publishes `PromotionActivatedEvent`, and store systems receive deployment instructions.
+
+#### Step 7: POS Consumption
+
+Store/POS systems load the promotion and apply the discount during checkout if conditions match.
+
+---
+
+## 1.4 High-Level Architecture Diagram
+
+```mermaid
+flowchart LR
+    A[React UI / Admin Portal] --> B[Azure Front Door / CDN / WAF]
+    B --> C[Azure API Management]
+    C --> D[Promotion Service]
+    C --> E[Pricing Engine]
+    C --> F[Store Service]
+    C --> G[Analytics Service]
+    C --> H[Identity Service]
+
+    D --> I[Azure SQL Database]
+    D --> J[Outbox Table]
+    J --> K[Azure Service Bus]
+
+    K --> E
+    K --> F
+    K --> G
+    K --> L[Notification Service]
+    K --> M[Azure Functions / Logic Apps]
+
+    E --> N[Cosmos DB]
+    G --> O[Analytics Store / Read Models]
+    F --> P[POS / External Store Systems]
+    D --> Q[Redis Cache]
+
+    D --> R[Application Insights]
+    E --> R
+    F --> R
+    G --> R
+```
+
+---
+
+## 1.5 Microservice Decomposition
+
+A good microservice design is based on **business capability**, not just technical layers.
+
+### Core Services
+
+#### 1. Promotion Service
+
+Responsible for:
+
+- promotion creation and update
+- lifecycle management
+- validation of business rules
+- storing core promotion definitions
+- approval status tracking
+- publishing domain events
+
+#### 2. Pricing Engine
+
+Responsible for:
+
+- promotion applicability checks
+- discount calculation
+- conflict resolution
+- prioritization between multiple promotions
+- final payable price computation
+
+#### 3. Store Service
+
+Responsible for:
+
+- store master data
+- store groups and hierarchy
+- promotion rollout by region/store
+- POS mapping and sync logic
+- offline store sync coordination
+
+#### 4. Identity Service
+
+Responsible for:
+
+- user authentication
+- role-based authorization
+- permissions
+- token issuance/validation integration
+- multi-tenant identity concerns if needed
+
+#### 5. Analytics Service
+
+Responsible for:
+
+- redemption metrics
+- campaign performance
+- margin/ROI reporting
+- trend analysis
+- operational dashboards
+
+#### 6. Notification Service
+
+Responsible for:
+
+- approval emails
+- activation notifications
+- store alerts
+- escalation reminders
+- SMS/push if required
+
+#### 7. Integration Service
+
+Responsible for:
+
+- ERP integration
+- CRM integration
+- POS/legacy bridges
+- third-party APIs
+- webhooks and import/export jobs
+
+#### 8. Approval Workflow Service
+
+Responsible for:
+
+- multi-level approvals
+- routing rules
+- escalation logic
+- SLA-based reminders
+- delegation support
+
+---
+
+## 1.6 Why Microservices Here?
+
+Microservices are not always the right answer. They make sense in this system because:
+
+- pricing logic evolves independently
+- POS integration has separate operational concerns
+- analytics workloads differ from transactional workloads
+- store sync can be asynchronous and high-volume
+- approvals and notifications have different scaling patterns
+- different teams may own different business capabilities
+
+### Benefits
+
+- independent deployment
+- team autonomy
+- technology flexibility where justified
+- independent scaling
+- fault isolation
+
+### Trade-offs
+
+- distributed complexity
+- eventual consistency
+- harder debugging
+- more DevOps overhead
+- more monitoring and tracing requirements
+
+### Interview-ready statement
+
+> Microservices are appropriate here because the promotions domain naturally splits into separate business capabilities such as promotion management, pricing, analytics, approvals, and store distribution. These areas have different performance needs, scaling patterns, and release cycles. However, I would only use this approach if the system size and team maturity justify the added distributed systems complexity.
+
+---
+
+## 1.7 Promotion Lifecycle
+
+A promotion usually moves through multiple states.
+
+### Common States
+
+- **Draft**
+- **Pending Approval**
+- **Approved**
+- **Scheduled**
+- **Active**
+- **Paused**
+- **Expired**
+- **Cancelled**
+- **Rejected**
+
+### Why this matters
+
+Lifecycle is important because each state controls:
+
+- who can edit the promotion
+- whether it is visible to stores
+- whether POS should apply it
+- whether notifications should be sent
+- whether audit logs and compensation actions are required
+
+### Example State Transition Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> PendingApproval
+    PendingApproval --> Approved
+    PendingApproval --> Rejected
+    Approved --> Scheduled
+    Scheduled --> Active
+    Active --> Paused
+    Paused --> Active
+    Active --> Expired
+    Draft --> Cancelled
+    Approved --> Cancelled
+    Active --> Cancelled
+    Rejected --> Draft
+```
+
+### Example Events
+
+- `PromotionSubmittedEvent`
+- `PromotionApprovedEvent`
+- `PromotionRejectedEvent`
+- `PromotionActivatedEvent`
+- `PromotionPausedEvent`
+- `PromotionExpiredEvent`
+- `PromotionCancelledEvent`
+
+---
+
+## 1.8 Non-Functional Requirements
+
+A strong system design answer should always include NFRs.
+
+### Availability
+
+Promotions are business-critical, especially during campaigns and peak retail events.
+
+### Scalability
+
+The system must handle:
+
+- large product catalogs
+- many store mappings
+- high read traffic
+- spikes during sales events
+- high event throughput
+
+### Performance
+
+Typical targets may include:
+
+- API P95 under 300 ms for common reads
+- pricing response under 100 ms for cached/common cases
+- promotion activation propagation within minutes or seconds depending on design
+
+### Security
+
+The system handles:
+
+- user identities
+- internal APIs
+- customer-related redemption data
+- sensitive business strategy
+
+### Auditability
+
+Every change to promotions should be traceable:
+
+- who changed it
+- what changed
+- when it changed
+- why it changed
+- what downstream actions occurred
+
+### Reliability
+
+Failures in one subsystem must not bring down the whole platform.
+
+---
+
+## 1.9 Key Design Principles
+
+Use these principles consistently in interviews:
+
+- design by business capability
+- prefer asynchronous communication for side effects
+- keep write operations strongly consistent where needed
+- tolerate eventual consistency on read models
+- isolate failures using resilience patterns
+- observe everything with logs, metrics, traces
+- keep APIs stable and versioned
+- automate delivery and rollback
+- build security in from day one
+
+---
+
+## 1.10 Architecture Trade-Off Summary
+
+| Decision Area | Recommended Choice | Why |
+|---|---|---|
+| Entry point | Azure API Management | Central governance, security, routing |
+| Transactional data | Azure SQL | Strong consistency and relational modeling |
+| High-scale read models | Cosmos DB | Fast reads and flexible denormalized models |
+| Messaging | Azure Service Bus | Reliable enterprise messaging |
+| Orchestration | AKS | Best fit for multiple .NET microservices |
+| Caching | Redis | Low latency and reduced DB load |
+| Background processing | Azure Functions / workers | Event-driven and scheduled jobs |
+| UI | React + TypeScript | Good SPA developer experience |
+
+---
+
+## 1.11 How to Explain This in an Interview
+
+A good spoken answer would sound like this:
+
+> The Promotions Management System is designed as a set of domain-oriented microservices behind Azure API Management. The Promotion Service owns the core lifecycle and transactional data, while supporting services like Pricing, Store Sync, Analytics, and Notifications react to business events through Azure Service Bus. Azure SQL is used where strong consistency is required, while Cosmos DB and Redis support scalable reads and fast access patterns. The system is deployed on AKS for scalability and operational control, and monitored using Application Insights, Azure Monitor, and centralized logging. This architecture gives strong separation of concerns while still supporting enterprise requirements like approvals, auditing, POS sync, and high availability.
 
 ---
 
 # 2. MICROSERVICES DESIGN PATTERNS
 
-## 2.1 Key Patterns Used
+## 2.1 Why Patterns Matter
 
-**Communication Patterns:**
-• **Synchronous (Request-Response)**: REST APIs for immediate responses, gRPC for inter-service calls requiring low latency
-• **Asynchronous (Event-Driven)**: Service Bus for decoupled communication, eventual consistency
-• **API Gateway Pattern**: APIM as single entry point, hides service complexity, handles cross-cutting concerns
-• **Service Discovery**: Kubernetes DNS for service discovery in AKS, health checks for availability
+Microservices architecture is not only about splitting services. Without proven patterns, distributed systems become fragile, inconsistent, and difficult to operate.
 
-**Data Management Patterns:**
-• **Database per Service**: Each microservice owns its database, no shared databases
-• **CQRS (Command Query Responsibility Segregation)**: Separate read and write models, optimize each independently
-• **Event Sourcing**: Store all changes as immutable events, rebuild state from events
-• **Saga Pattern**: Distributed transactions across services, compensating transactions for rollback
-• **Outbox Pattern**: Guarantee event publishing with database transaction, background worker publishes to broker
+Patterns help solve recurring problems such as:
 
-**Reliability Patterns:**
-• **Circuit Breaker**: Fail fast when service unavailable, prevent cascading failures (Polly library)
-• **Retry with Exponential Backoff**: Retry failed requests with increasing delays
-• **Bulkhead Isolation**: Isolate resources to prevent one failure affecting others
-• **Health Checks**: Kubernetes liveness and readiness probes
-• **Fallback**: Provide degraded service when dependencies fail
+- how services communicate
+- how data stays consistent
+- how to recover from failures
+- how to deploy safely
+- how to avoid tight coupling
 
-**Deployment Patterns:**
-• **Blue-Green Deployment**: Two identical environments, switch traffic instantly
-• **Canary Deployment**: Route small percentage of traffic to new version, monitor metrics
-• **Rolling Updates**: Gradually replace old instances with new ones
-• **Feature Flags**: Toggle features without redeployment
+---
 
-## 2.2 API Gateway Pattern (Azure APIM)
+## 2.2 Communication Patterns
 
-**Why API Gateway:**
+### Synchronous Communication
 
-• Single entry point for all clients (web, mobile, third-party)
-• Centralized authentication and authorization
-• Rate limiting and throttling at gateway level
-• Request/response transformation and validation
-• API versioning and routing
-• SSL/TLS termination
-• Caching of responses
-• Logging and monitoring
-• API documentation and developer portal
+Used when an immediate response is required.
 
-**APIM Responsibilities:**
+Examples:
 
-• **Authentication**: Validate JWT tokens, OAuth 2.0 flows
-• **Authorization**: Check user permissions before routing
-• **Rate Limiting**: Throttle requests per user/API key
-• **Transformation**: Convert request/response formats
-• **Caching**: Cache GET responses to reduce backend load
-• **Routing**: Route requests to correct microservice
-• **Versioning**: Support multiple API versions simultaneously
-• **Monitoring**: Track API usage, performance metrics
-• **Security**: WAF integration, IP whitelisting, SSL enforcement
+- fetching promotion details
+- validating user permissions in real time
+- querying applicable promotions for a checkout call
 
-**Request Flow Through APIM:**
+Common protocols:
 
-• Client sends request to APIM endpoint
-• APIM validates request format and size
-• APIM checks rate limits for client
-• APIM validates JWT token in Authorization header
-• APIM checks cache for GET requests
-• APIM transforms request if needed
-• APIM routes to backend service
-• Backend service processes request
-• APIM caches response (if applicable)
-• APIM transforms response
-• APIM returns to client
+- REST over HTTP
+- gRPC for internal low-latency service-to-service calls
 
-## 2.3 CQRS Pattern (Command Query Responsibility Segregation)
+### Advantages
 
-**Why CQRS:**
+- simple request-response model
+- easier to reason about for immediate operations
+- easier for some debugging scenarios
 
-• Write model optimized for transactional consistency
-• Read model optimized for query performance
-• Scale read and write independently
-• Different data structures for different use cases
-• Easier to understand business operations
+### Drawbacks
 
-**Write Side (Commands):**
+- tighter runtime coupling
+- dependency latency affects caller
+- cascading failures more likely
 
-• CreatePromotionCommand: Validate, persist, publish event
-• UpdatePromotionCommand: Modify existing promotion
-• ActivatePromotionCommand: Change status, trigger sync
-• CancelPromotionCommand: Soft delete, compensate
+### Asynchronous Communication
 
-**Read Side (Queries):**
+Used when eventual completion is acceptable.
 
-• GetPromotionQuery: Fetch single promotion
-• ListPromotionsQuery: Paginated list with filters
-• SearchPromotionsQuery: Full-text search
-• GetAnalyticsQuery: Aggregated metrics
+Examples:
 
-**Data Synchronization:**
+- promotion activation notifications
+- analytics updates
+- POS sync
+- approval reminders
+- cache invalidation events
 
-• Write to Azure SQL (normalized, transactional)
-• Publish event to Service Bus
-• Event handler updates Cosmos DB (denormalized, optimized for reads)
-• Read queries hit Cosmos DB for performance
-• Eventual consistency between write and read models
+Common tools:
 
-**Handling Eventual Consistency:**
+- Azure Service Bus
+- Event Grid
+- Kafka in high-throughput streaming scenarios
 
-• Version numbers on read model
-• Timestamp on data for freshness
-• Notification to client when read model updated
-• Accept stale data for non-critical queries
-• Use write model for critical operations
+### Advantages
 
-## 2.4 Saga Pattern (Distributed Transactions)
+- loose coupling
+- resilience to temporary failures
+- better scaling
+- natural fit for workflows and downstream effects
 
-**Problem Being Solved:**
+### Drawbacks
 
-• Promotion activation requires multiple services
-• Pricing engine needs to update prices
-• Store service needs to sync to POS
-• Notification service needs to alert
-• If any step fails, need to rollback all
+- eventual consistency
+- duplicate delivery handling
+- more complex tracing/debugging
+- ordering/idempotency concerns
 
-**Choreography Saga (Event-Driven):**
+### Interview-ready statement
 
-• Promotion Service publishes PromotionActivatingEvent
-• Pricing Engine listens, updates prices, publishes PricesUpdatedEvent
-• Store Service listens, syncs to POS, publishes PromotionDistributedEvent
-• Notification Service listens, sends alerts, publishes NotificationsSentEvent
-• Promotion Service listens, marks as ACTIVE
+> I use synchronous communication for immediate business responses and asynchronous messaging for downstream side effects. For example, creating a promotion is synchronous, but updating analytics, sending notifications, and syncing stores should be event-driven.
 
-**Compensation on Failure:**
+---
 
-• If Pricing Engine fails: publish PricesUpdateFailedEvent
-• Promotion Service listens, reverts status to APPROVED
-• Store Service listens, removes from POS
-• Notification Service listens, sends failure notification
+## 2.3 API Gateway Pattern
 
-**Orchestration Saga (Centralized):**
+Azure API Management acts as the controlled front door.
 
-• Promotion Service initiates workflow
-• Saga Orchestrator (Azure Logic App) coordinates steps
-• Orchestrator calls Pricing Engine API
-• Orchestrator calls Store Service API
-• Orchestrator calls Notification Service API
-• If any fails, orchestrator triggers compensation
+### Responsibilities
 
-**When to Use:**
+- authentication
+- authorization policies
+- routing
+- throttling
+- request/response transformation
+- versioning
+- caching
+- logging
+- developer portal support
 
-• Choreography: Simple workflows, few services, loose coupling preferred
-• Orchestration: Complex workflows, many steps, need clear control flow
+### Why it matters
 
-## 2.5 Circuit Breaker Pattern
+Without an API gateway:
 
-**States:**
+- every client must know every service
+- auth logic gets duplicated
+- rate limiting becomes inconsistent
+- observability becomes fragmented
 
-• **Closed**: Normal operation, requests pass through
-• **Open**: Service unavailable, requests fail immediately
-• **Half-Open**: Testing if service recovered, limited requests allowed
+### Best practice
 
-**Implementation in .NET:**
+Gateway should handle **cross-cutting concerns**, not core business logic.
 
-• Use Polly library for resilience policies
-• Configure failure threshold (e.g., 5 consecutive failures)
-• Configure timeout duration (e.g., 30 seconds)
-• Configure half-open test requests (e.g., 3 requests)
+---
 
-**Example Scenario:**
+## 2.4 Database per Service Pattern
 
-• Pricing Engine calls Product Service
-• Product Service returns 500 errors
-• After 5 failures, circuit opens
-• Subsequent requests fail immediately (fast fail)
-• After 30 seconds, circuit goes to half-open
-• Send test request to Product Service
-• If successful, circuit closes
-• If fails, circuit opens again
+Each microservice owns its own data.
 
-**Benefits:**
+### Why this is important
 
-• Prevents cascading failures
-• Allows failing service time to recover
-• Provides fast feedback to client
-• Enables fallback strategies
+If multiple services share one database:
 
-## 2.6 Outbox Pattern (Reliable Event Publishing)
+- services become tightly coupled
+- schema changes become risky
+- one service can bypass another service’s rules
+- team autonomy is reduced
 
-**Problem:**
+### Good rule
 
-• Update database AND publish event must be atomic
-• If publish fails after DB update, event lost
-• If DB update fails after publish, inconsistency
+A service may expose data through:
 
-**Solution:**
+- API
+- event
+- cached projection
 
-• Single database transaction for both
-• Write domain event to OutboxMessages table
-• Commit transaction
-• Background worker polls OutboxMessages
-• Publishes to Service Bus
-• Marks as processed
-• Handles idempotency (same event published twice is safe)
+It should not allow direct DB access from other services.
 
-**Implementation Steps:**
+### Trade-off
 
-• When creating promotion, insert into Promotions table
-• In same transaction, insert into OutboxMessages table
-• Commit transaction
-• Background job (Azure Function) polls OutboxMessages every 5 seconds
-• For unprocessed messages, publish to Service Bus
-• Update Processed = true
-• If publish fails, retry with exponential backoff
-• Dead-letter queue for messages that fail after max retries
+This improves autonomy, but introduces:
 
-**Guarantees:**
+- data duplication
+- eventual consistency
+- harder reporting if done poorly
 
-• Event is ALWAYS published if database write succeeds
-• No event loss due to publish failures
-• Handles service restarts gracefully
-• Idempotent processing (safe to process same event twice)
+---
+
+## 2.5 CQRS Pattern
+
+CQRS separates write operations from read operations.
+
+### Write Side
+
+Optimized for:
+
+- validation
+- consistency
+- business workflows
+- transactional correctness
+
+### Read Side
+
+Optimized for:
+
+- fast filtering
+- search
+- dashboards
+- denormalized views
+- low latency
+
+### Example in Promotions System
+
+- **Write model**: Azure SQL stores promotions, rules, lifecycle changes
+- **Read model**: Cosmos DB stores store-wise or dashboard-optimized projections
+
+### Why use CQRS here?
+
+Because promotion creation and approval are not the same type of workload as querying dashboards or listing active promotions across stores.
+
+### Trade-offs
+
+| Benefit | Cost |
+|---|---|
+| better scaling | more complexity |
+| better query performance | eventual consistency |
+| tailored data models | more moving parts |
+
+---
+
+## 2.6 Event Sourcing
+
+Event sourcing stores state changes as a sequence of immutable events.
+
+### Example
+
+Instead of storing only:
+
+- Promotion = Active
+
+You store:
+
+- PromotionCreated
+- PromotionSubmitted
+- PromotionApproved
+- PromotionActivated
+
+### Benefits
+
+- complete audit trail
+- replay capability
+- temporal reconstruction
+- easier debugging of business history
+
+### Drawbacks
+
+- harder query model
+- schema evolution complexity
+- operational overhead
+- requires projections for normal reads
+
+### Recommendation
+
+For most enterprise promotion systems, use **audit logging + domain events** first. Use **full event sourcing** only if business needs justify it.
+
+---
+
+## 2.7 Saga Pattern
+
+Sagas solve distributed transactions without using a traditional cross-service transaction.
+
+### Why needed?
+
+Activating a promotion may involve:
+
+- promotion state update
+- pricing rule propagation
+- store distribution
+- notification sending
+- analytics updates
+
+A single ACID transaction across services is not practical.
+
+### Choreography Saga
+
+Services react to each other’s events.
+
+#### Pros
+
+- loosely coupled
+- simpler for small workflows
+- naturally event-driven
+
+#### Cons
+
+- hard to trace for complex flows
+- logic becomes distributed
+- failure handling becomes harder to visualize
+
+### Orchestration Saga
+
+A central orchestrator coordinates steps.
+
+#### Pros
+
+- easier to understand end-to-end flow
+- better for approvals and long-running workflows
+- clearer compensation logic
+
+#### Cons
+
+- central coordinator can become a bottleneck
+- introduces orchestration dependency
+
+### Rule of thumb
+
+- use **choreography** for simple domain reactions
+- use **orchestration** for complex business workflows with many steps and SLA rules
+
+---
+
+## 2.8 Outbox Pattern
+
+The Outbox pattern solves the “database write succeeded but event publish failed” problem.
+
+### Problem
+
+Suppose Promotion Service:
+
+1. saves promotion in SQL
+2. publishes event to Service Bus
+
+If DB commit succeeds but publish fails, the system becomes inconsistent.
+
+### Solution
+
+In the same database transaction:
+
+- save promotion
+- save event to `OutboxMessages`
+
+Then a background worker:
+
+- reads unprocessed outbox rows
+- publishes them to Service Bus
+- marks them as processed
+
+### Benefits
+
+- reliable event publishing
+- restart-safe processing
+- avoids dual-write inconsistency
+
+### Interview-ready explanation
+
+> The Outbox pattern is used to make database state changes and event publication reliable without needing distributed transactions. I store the event in an outbox table in the same local transaction as the business change, then a background publisher sends it to the message broker.
+
+---
+
+## 2.9 Circuit Breaker Pattern
+
+A circuit breaker prevents repeated calls to a failing dependency.
+
+### States
+
+- **Closed**: requests flow normally
+- **Open**: requests fail fast
+- **Half-Open**: allow limited test traffic
+
+### Example
+
+If Pricing Engine depends on Product Service and Product Service is failing:
+
+- stop flooding it with retries
+- fail fast or use fallback
+- retry later when health improves
+
+### Benefits
+
+- prevents cascading failure
+- protects system resources
+- improves recovery behavior
+
+### Common .NET implementation
+
+- Polly
+- Microsoft resilience libraries
+
+---
+
+## 2.10 Retry with Exponential Backoff
+
+Retries should be used only for transient failures.
+
+### Good candidates
+
+- temporary network timeouts
+- transient SQL errors
+- temporary broker unavailability
+- short-lived dependency failures
+
+### Bad candidates
+
+- validation errors
+- authorization failures
+- business rule violations
+- malformed requests
+
+### Why exponential backoff?
+
+Because immediate repeated retries can worsen an outage.
+
+Example delays:
+
+- 1 second
+- 2 seconds
+- 4 seconds
+- 8 seconds
+
+Often combined with:
+
+- jitter
+- circuit breaker
+- timeout policy
+
+---
+
+## 2.11 Idempotency Pattern
+
+In distributed systems, the same command or event may be processed more than once.
+
+### Example
+
+A `PromotionActivatedEvent` may be redelivered.
+
+If the consumer is not idempotent:
+
+- duplicate notifications may be sent
+- duplicate store syncs may occur
+- duplicate analytics entries may be created
+
+### Solutions
+
+- unique event IDs
+- processed message table
+- idempotency keys
+- upsert semantics where appropriate
+
+---
+
+## 2.12 Bulkhead Pattern
+
+The bulkhead pattern isolates failure domains.
+
+### Example
+
+If notification processing spikes or fails, it should not consume resources needed by the promotion API.
+
+### How to implement
+
+- separate queues
+- separate thread pools
+- separate pods/services
+- separate scaling policies
+
+### Benefit
+
+One overloaded function does not sink the entire platform.
+
+---
+
+## 2.13 Deployment Patterns
+
+### Blue-Green Deployment
+
+Two environments, switch traffic when ready.
+
+Best for:
+
+- low-risk cutover
+- easy rollback
+- critical releases
+
+### Canary Deployment
+
+Release to small subset first.
+
+Best for:
+
+- production validation with low blast radius
+- gradual risk control
+
+### Rolling Deployment
+
+Update instances gradually.
+
+Best for:
+
+- standard Kubernetes-friendly deployments
+- cost efficiency
+
+### Feature Flags
+
+Turn features on/off without redeploying.
+
+Best for:
+
+- safe experimentation
+- partial rollout
+- emergency disablement
+
+---
+
+## 2.14 Pattern Selection Summary
+
+| Problem | Pattern |
+|---|---|
+| Single entry point and API governance | API Gateway |
+| Different read and write workloads | CQRS |
+| Reliable event publication | Outbox |
+| Distributed business workflow | Saga |
+| Repeated dependency failure | Circuit Breaker |
+| Temporary dependency failure | Retry with Backoff |
+| Duplicate event delivery | Idempotency |
+| Failure isolation | Bulkhead |
+| Safe rollout | Canary / Blue-Green / Rolling |
+
+---
+
+## 2.15 How to Explain Patterns in Interview
+
+A strong answer sounds like:
+
+> In a distributed promotions platform, patterns are essential because the main challenge is not just code organization but consistency, failure handling, and operational safety. I would use API Gateway for cross-cutting concerns, CQRS for different read/write workloads, Outbox for reliable event publishing, Saga for multi-service workflows, Circuit Breaker and Retry for resilience, and idempotency to handle duplicate message delivery safely.
 
 ---
 
 # 3. AZURE SERVICES - WHEN & WHY
 
-## 3.1 Azure SQL Database
-
-**When to Use:**
-
-• Transactional data requiring ACID guarantees
-• Complex queries with joins and aggregations
-• Data with fixed schema
-• Relational data with foreign keys
-• Compliance requirements (audit trails, data retention)
-
-**Promotions System Usage:**
-
-• Promotions table (core data)
-• Campaigns table (grouping promotions)
-0• PromotionRules table (business rules)
-• Stores table (store master)
-• Users table (user management)
-• AuditLog table (compliance)
-• OutboxMessages table (event publishing)
-
-**Key Features:**
-
-• Automatic backups and point-in-time restore
-• Transparent Data Encryption (TDE)
-• Row-level security (RLS)
-• Dynamic data masking
-• Threat detection
-• Elastic pools for cost optimization
-• Geo-replication for disaster recovery
-
-**Pricing Models:**
-
-• DTU (Database Transaction Unit): Bundled compute, memory, storage
-• vCore: Pay per virtual core, more flexible
-• Serverless: Auto-pause when idle, pay per second
-
-## 3.2 Cosmos DB
-
-**When to Use:**
-
-• High read throughput scenarios
-• Flexible/evolving schema
-• Global distribution required
-• Sub-millisecond latency needed
-• High write throughput
-• Document/JSON data
-• Real-time analytics
-
-**Promotions System Usage:**
-
-• Product catalog (millions of products, high reads)
-• Promotion read model (CQRS read side)
-• Shopping cart/session data (TTL expiration)
-• Event store (event sourcing)
-• Analytics events (high volume writes)
-• User preferences (flexible schema)
-
-**Key Features:**
-
-• Multi-region replication
-• Automatic indexing
-• TTL (Time to Live) for auto-expiration
-• Change Feed for event processing
-• Transactions within partition
-• Partition key selection critical for performance
-
-**Cosmos DB vs SQL Decision Matrix:**
+## 3.1 Azure Service Selection Philosophy
 
-• Fixed schema → SQL
-• Flexible schema → Cosmos DB
-• Complex queries → SQL
-• Simple queries, high volume → Cosmos DB
-• Strong consistency required → SQL
-• Eventual consistency acceptable → Cosmos DB
-• Vertical scaling → SQL
-• Horizontal scaling → Cosmos DB
-• Transactions across records → SQL
-• Transactions within partition → Cosmos DB
-
-## 3.3 Azure Service Bus
+In interviews, don’t just name Azure services. Explain:
 
-**When to Use:**
+- what problem they solve
+- why they fit
+- what alternatives exist
+- what trade-offs come with them
 
-• Asynchronous communication between services
-• Decoupling services (loose coupling)
-• Guaranteed message delivery
-• Message ordering required
-• Dead-letter queue for failed messages
-• Scheduled message delivery
-• Duplicate detection needed
-
-**Promotions System Usage:**
+The best cloud design answers are about **decision quality**, not listing services.
 
-• Promotion events (PromotionCreatedEvent, PromotionActivatedEvent)
-• POS sync queue (distribute promotions to stores)
-• Notification queue (email, SMS, push)
-• Analytics events queue
-• Approval workflow events
-
-**Queue vs Topic:**
-
-• **Queue**: Point-to-point, single consumer, FIFO ordering
-• **Topic**: Pub/Sub, multiple subscribers, filter by subscription
+---
 
-**Service Bus Features:**
+## 3.2 Azure SQL Database
 
-• Dead Letter Queue (DLQ) for failed messages
-• Sessions for ordered processing
-• Scheduled delivery (send at specific time)
-• Duplicate detection (prevent duplicate processing)
-• Auto-forwarding (chain queues)
-• Message TTL (expire old messages)
-• Correlation ID for tracing
+### When to Use
 
-## 3.4 Azure Functions
+Use Azure SQL when you need:
 
-**When to Use:**
+- ACID transactions
+- relational modeling
+- joins and reporting queries
+- strict consistency
+- constraints and foreign keys
+- mature indexing/query behavior
+- strong audit/compliance support
 
-• Event-driven processing
-• Scheduled tasks
-• Lightweight computations
-• Serverless architecture (no infrastructure management)
-• Pay per execution
-• Auto-scaling needed
+### Best fit in this system
 
-**Promotions System Usage:**
+- promotions master data
+- campaign definitions
+- approval states
+- audit records
+- outbox table
+- user-role mappings in app-specific cases
 
-• **Timer Trigger**: Check for expired promotions every 5 minutes
-• **Service Bus Trigger**: Process promotion events
-• **HTTP Trigger**: On-demand report generation
-• **Blob Trigger**: Process uploaded promotion images
-• **Queue Trigger**: Process POS sync requests
+### Why it fits
 
-**Pricing Models:**
+Promotions are business-critical records with lifecycle, rules, ownership, auditability, and update control. This is classic relational transactional data.
 
-• Consumption Plan: Pay per execution, auto-scale to 0
-• Premium Plan: Reserved capacity, faster cold starts
-• Dedicated Plan: App Service plan, guaranteed capacity
+### Advantages
 
-**Cold Start Considerations:**
+- strong consistency
+- mature SQL tooling
+- robust indexing
+- backup and restore
+- security features like TDE and RLS
 
-• First invocation takes 1-2 seconds (Consumption Plan)
-• Mitigate with Premium Plan or keep-alive pings
-• Use in-process functions (.NET) for faster startup
-• Pre-warm functions during off-peak hours
+### Limitations
 
-## 3.5 Azure Logic Apps
+- less natural for globally distributed ultra-high-scale document workloads
+- horizontal partitioning is harder than NoSQL approaches
+- not ideal for flexible denormalized event-heavy read models
 
-**When to Use:**
+---
 
-• Approval workflows
-• Integration workflows
-• Scheduled tasks
-• Conditional logic
-• Multi-step processes
-• No-code/low-code solutions
+## 3.3 Cosmos DB
 
-**Promotions System Usage:**
+### When to Use
 
-• Promotion approval workflow (multi-level approvals)
-• Escalation workflow (if approval not completed in time)
-• Notification workflow (send emails, Teams messages)
-• Integration workflow (sync with ERP)
+Use Cosmos DB when you need:
 
-**Advantages:**
+- low-latency reads at scale
+- flexible JSON schema
+- denormalized data
+- high throughput
+- global distribution
+- change feed processing
+- document-oriented modeling
 
-• Visual workflow designer
-• 400+ connectors (Office 365, Teams, SAP, etc.)
-• Built-in retry and error handling
-• Audit trail
-• No code required
-• Scheduled triggers
+### Best fit in this system
 
-**Disadvantages:**
+- promotion read projections
+- analytics event store
+- store-specific active promotions view
+- session/cart-style data
+- product catalog read models
+- aggregated dashboards
 
-• Less flexible than code
-• Higher cost for complex workflows
-• Limited debugging capabilities
-• Vendor lock-in
+### Why it fits
 
-## 3.6 Azure Key Vault
+The UI and pricing systems often need fast pre-shaped data, not highly normalized relational queries.
 
-**When to Use:**
+### Key design concern
 
-• Store secrets (API keys, connection strings)
-• Store certificates (SSL/TLS)
-• Store keys (encryption keys)
-• Centralized secret management
-• Audit trail for secret access
-• Rotation policies
+Partition key design is critical. A bad partition key creates hot partitions and high cost.
 
-**Promotions System Usage:**
+### Trade-offs
 
-• Database connection strings
-• Service Bus connection strings
-• API keys for external services
-• JWT signing keys
-• SSL certificates
-• Storage account keys
-• Third-party integration credentials
+| Good for | Less good for |
+|---|---|
+| high read scale | complex joins |
+| flexible schema | relational constraints |
+| denormalized read models | strong multi-record consistency across partitions |
 
-**Best Practices:**
+---
 
-• Use Managed Identity (no credentials in code)
-• Enable soft-delete and purge protection
-• Use Key Vault references in App Service config
-• Rotate secrets regularly
-• Separate Key Vaults per environment
-• Use access policies or RBAC
-• Enable logging and monitoring
+## 3.4 Azure SQL vs Cosmos DB
 
-## 3.7 Azure API Management (APIM)
+| Decision Factor | Azure SQL | Cosmos DB |
+|---|---|---|
+| Strong consistency | Excellent | Limited/trade-off based |
+| Complex joins | Excellent | Weak |
+| Flexible schema | Moderate | Excellent |
+| High-scale reads | Good | Excellent |
+| Global distribution | Moderate | Excellent |
+| Transaction-heavy workflows | Excellent | Limited to partition scope |
+| Read projections | Possible | Excellent |
+| Cost predictability | Often easier | Needs RU planning |
 
-**When to Use:**
+### Interview-ready answer
 
-• Expose APIs to internal/external consumers
-• Centralized API governance
-• Rate limiting and throttling
-• API versioning
-• Request/response transformation
-• Developer portal needed
+> I would use Azure SQL for the core write model because promotions require strong consistency, approvals, and auditability. I would use Cosmos DB for read projections and analytics-style access patterns because those workloads benefit from denormalized, high-scale, low-latency document reads.
 
-**Promotions System Usage:**
+---
 
-• Single entry point for all clients
-• Authentication and authorization
-• Rate limiting per customer
-• Request validation
-• Response caching
-• API documentation
-• Usage analytics
+## 3.5 Azure Service Bus
 
-**Tiers:**
+### When to Use
 
-• Developer: Development/testing, limited throughput
-• Standard: Production workloads, auto-scaling
-• Premium: Multi-region deployment, high availability
+Use Service Bus for:
 
-## 3.8 Azure Kubernetes Service (AKS)
+- asynchronous commands/events
+- reliable enterprise messaging
+- queues and topics
+- dead-letter handling
+- duplicate detection
+- ordered processing with sessions
 
-**When to Use:**
+### Best fit in this system
 
-• Container orchestration
-• Microservices deployment
-• Auto-scaling based on load
-• Rolling updates and rollbacks
-• Service discovery
-• Load balancing
-• Multi-region deployment
+- promotion lifecycle events
+- store sync jobs
+- notification jobs
+- approval workflow messages
+- analytics ingestion triggers
 
-**Promotions System Usage:**
+### Why it fits
 
-• Deploy each microservice as container
-• Auto-scale services based on CPU/memory
-• Rolling updates for zero-downtime deployments
-• Service mesh for inter-service communication
-• Network policies for security
+Promotions systems depend heavily on side effects. Once a promotion changes state, many systems need to react without tight coupling.
 
-**Key Concepts:**
+### Queue vs Topic
 
-• **Pod**: Smallest deployable unit, contains one or more containers
-• **Deployment**: Manages pods, ensures desired state
-• **Service**: Exposes pods internally or externally
-• **Ingress**: Routes external traffic to services
-• **ConfigMap**: Store configuration data
-• **Secret**: Store sensitive data
-• **StatefulSet**: For stateful applications
-• **DaemonSet**: Run pod on every node
+- **Queue**: one consumer path
+- **Topic**: multiple independent subscribers
 
-## 3.9 Azure Data Factory (Good-to-Have)
+### Example
 
-**When to Use:**
+`PromotionActivatedEvent` is best published to a **topic** because Pricing, Store, Analytics, and Notification services may all need to consume it.
 
-• ETL/ELT pipelines
-• Data integration from multiple sources
-• Scheduled data movement
-• Data transformation
-• Data warehouse loading
+---
 
-**Promotions System Usage:**
+## 3.6 Azure Functions
 
-• Load product catalog from ERP to Azure SQL
-• Load store master data from legacy system
-• Daily aggregation of promotion performance data
-• Load analytics data to Synapse for reporting
-• Sync customer data from CRM
+### When to Use
 
-**Key Concepts:**
+Use Azure Functions for:
 
-• **Pipeline**: Workflow of activities
-• **Activity**: Processing step (Copy, Transform, etc.)
-• **Dataset**: Reference to data source/sink
-• **Linked Service**: Connection to data store
-• **Trigger**: When to run (schedule, event, tumbling window)
-• **Integration Runtime**: Compute for execution
+- event handlers
+- scheduled jobs
+- lightweight integrations
+- queue processing
+- timed expiry checks
+- small serverless background tasks
 
-## 3.10 Azure Cache for Redis
+### Example usage
 
-**When to Use:**
+- expire promotions every 5 minutes
+- process outbox events
+- trigger small ETL/integration tasks
+- handle webhook callbacks
 
-• Cache frequently accessed data
-• Reduce database load
-• Improve response times
-• Session storage
-• Real-time leaderboards
-• Rate limiting counters
+### Benefits
 
-**Promotions System Usage:**
+- fast to build
+- auto-scaling
+- cost-efficient for sporadic workloads
 
-• Cache active promotions (1-hour TTL)
-• Cache product prices (5-minute TTL)
-• Cache store information
-• Cache user permissions
-• Store shopping cart sessions
-• Rate limiting counters per API key
+### Caution
 
-**Caching Strategy:**
+Do not overload Functions with too much business complexity. Long-lived or heavily stateful workflows may fit better in worker services or orchestrated flows.
 
-• **Cache-Aside**: Application checks cache, if miss, fetch from DB and populate cache
-• **Write-Through**: Write to cache and DB simultaneously
-• **Write-Behind**: Write to cache, asynchronously write to DB
+---
 
-**Eviction Policies:**
+## 3.7 Azure Logic Apps
 
-• LRU (Least Recently Used): Remove least recently used items
-• LFU (Least Frequently Used): Remove least frequently used items
-• TTL (Time to Live): Auto-expire after duration
+### When to Use
+
+Use Logic Apps for:
+
+- approval workflows
+- connector-heavy enterprise integration
+- email/Teams-based approvals
+- timed reminders and escalations
+- low-code orchestration across systems
+
+### Best fit in this system
+
+- approval chain routing
+- SLA reminders
+- escalation after timeout
+- integration with Office 365/Teams
+
+### When not to use
+
+Avoid Logic Apps if:
+
+- workflow logic is highly custom and code-heavy
+- throughput is very high
+- debugging fine-grained logic is critical
+- you want full developer control in code
+
+### Interview-ready trade-off
+
+> Logic Apps are a good fit for human-centric workflows and connector-heavy integrations, but I would avoid using them for high-throughput core business logic where code-first orchestration is easier to test and version.
+
+---
+
+## 3.8 Azure Key Vault
+
+### When to Use
+
+Use Key Vault to store:
+
+- secrets
+- certificates
+- connection strings
+- API keys
+- signing keys
+
+### Best practice
+
+Use **Managed Identity** so applications do not store credentials in code or config files.
+
+### Why it matters
+
+Secret sprawl is a major operational and security risk. Key Vault centralizes control, auditing, and rotation.
+
+---
+
+## 3.9 Azure API Management (APIM)
+
+### Why APIM is important here
+
+APIM provides:
+
+- single public API surface
+- security policies
+- throttling
+- version control
+- transformations
+- analytics and governance
+
+### Use APIM when
+
+- multiple clients exist
+- multiple backend services exist
+- API security/governance is important
+- external partners may consume APIs
+
+### Avoid putting business logic there
+
+APIM should validate, protect, and route — not become a business workflow engine.
+
+---
+
+## 3.10 Azure Kubernetes Service (AKS)
+
+### When to Use
+
+Use AKS when:
+
+- you have multiple containerized services
+- you need auto-scaling
+- you want controlled deployment strategies
+- you need service discovery and orchestration
+- you need operational flexibility across environments
+
+### Why it fits this system
+
+A promotions platform with multiple .NET services, background workers, and supporting components is a strong AKS candidate.
+
+### Benefits
+
+- rolling deployments
+- health probes
+- autoscaling
+- self-healing
+- resource isolation
+- mature Kubernetes ecosystem
+
+### Trade-off
+
+AKS gives flexibility and power, but it increases operational complexity compared to simpler PaaS deployment options.
+
+---
+
+## 3.11 Azure Cache for Redis
+
+### When to Use
+
+Use Redis for:
+
+- active promotion cache
+- price lookup cache
+- store metadata cache
+- permission cache
+- session or token-related short-lived data
+- distributed locks in some cases
+
+### Why it matters
+
+Many requests in this system are read-heavy and repetitive. Caching reduces latency and cost.
+
+### Common strategy
+
+**Cache-aside** is usually the safest default.
+
+### Caution
+
+Cache invalidation must be handled carefully after activation, expiration, or cancellation events.
+
+---
+
+## 3.12 Azure Data Factory
+
+### When to Use
+
+Use Data Factory for:
+
+- scheduled data movement
+- ETL/ELT workflows
+- ERP-to-cloud data loads
+- reporting warehouse feeds
+- batch integration pipelines
+
+### Best fit in this system
+
+- importing store master data
+- loading product catalog from ERP
+- moving analytics data into Synapse or reporting stores
+
+---
+
+## 3.13 Recommended Azure Mapping for This System
+
+| Concern | Azure Service |
+|---|---|
+| Public API gateway | API Management |
+| Transactional DB | Azure SQL |
+| Read projections / denormalized data | Cosmos DB |
+| Messaging | Azure Service Bus |
+| Caching | Azure Cache for Redis |
+| Secrets | Azure Key Vault |
+| Background jobs | Azure Functions / worker services |
+| Container orchestration | AKS |
+| Monitoring | Application Insights + Azure Monitor |
+| Workflow approvals | Logic Apps |
+| ETL / batch integration | Data Factory |
+
+---
+
+## 3.14 How to Explain Azure Choices in an Interview
+
+> I choose Azure services based on workload characteristics. Azure SQL is used for promotion write workflows because it provides strong consistency and relational integrity. Cosmos DB supports high-scale denormalized read models. Service Bus handles asynchronous workflows reliably. APIM provides centralized API governance. Redis improves latency for frequently accessed promotion data. AKS is used for orchestrating multiple containerized services. Key Vault secures secrets, and Application Insights plus Azure Monitor provide operational visibility.
 
 ---
 
 # 4. API DESIGN & MANAGEMENT
 
-## 4.1 REST API Design Principles
+## 4.1 Why API Design Matters
 
-**Resource Naming Conventions:**
+In a Promotions Management System, APIs are not just transport endpoints. They are the formal contract between:
 
-• Use nouns, not verbs: /api/v1/promotions (not /api/v1/getPromotions)
-• Use plural for collections: /api/v1/promotions (not /api/v1/promotion)
-• Use hierarchical structure for relationships: /api/v1/promotions/{id}/rules
-• Use lowercase and hyphens: /api/v1/store-groups (not /api/v1/StoreGroups)
-• Avoid file extensions: /api/v1/promotions (not /api/v1/promotions.json)
+- frontend and backend
+- external systems and internal services
+- APIM and downstream microservices
+- store/POS integrations and the cloud platform
 
-**HTTP Methods:**
+Poor API design causes:
 
-• **GET**: Retrieve resource(s), idempotent, safe (no side effects)
-• **POST**: Create new resource, not idempotent (multiple calls create multiple resources)
-• **PUT**: Replace entire resource, idempotent
-• **PATCH**: Partial update, idempotent
-• **DELETE**: Remove resource, idempotent
+- tight coupling
+- hard-to-change contracts
+- weak validation
+- inconsistent error handling
+- security gaps
+- versioning pain
 
-**Status Codes:**
+Good API design improves:
 
-• **2xx Success**:
-  - 200 OK: Successful GET/PUT/PATCH
-  - 201 Created: Successful POST
-  - 204 No Content: Successful DELETE
-  - 206 Partial Content: Partial response (pagination)
+- developer productivity
+- system clarity
+- integration stability
+- observability
+- long-term maintainability
 
-• **4xx Client Error**:
-  - 400 Bad Request: Invalid request format/validation error
-  - 401 Unauthorized: Missing/invalid authentication
-  - 403 Forbidden: Authenticated but insufficient permissions
-  - 404 Not Found: Resource doesn't exist
-  - 409 Conflict: Duplicate resource or state conflict
-  - 422 Unprocessable Entity: Business rule violation
-  - 429 Too Many Requests: Rate limited
+---
 
-• **5xx Server Error**:
-  - 500 Internal Server Error: Unexpected error
-  - 503 Service Unavailable: Service temporarily down
+## 4.2 REST API Design Principles
 
-## 4.2 API Endpoints for Promotions System
+### Use Resources, Not Actions
 
-**Promotions CRUD:**
+Prefer nouns over verbs.
 
-• GET /api/v1/promotions - List all promotions (paginated)
-• GET /api/v1/promotions/{id} - Get specific promotion
-• POST /api/v1/promotions - Create new promotion
-• PUT /api/v1/promotions/{id} - Full update
-• PATCH /api/v1/promotions/{id} - Partial update
-• DELETE /api/v1/promotions/{id} - Soft delete
+Good:
 
-**Lifecycle Operations:**
+- `/api/v1/promotions`
+- `/api/v1/promotions/{id}`
+- `/api/v1/promotions/{id}/rules`
 
-• POST /api/v1/promotions/{id}/submit - Submit for approval
-• POST /api/v1/promotions/{id}/approve - Approve promotion
-• POST /api/v1/promotions/{id}/reject - Reject promotion
-• POST /api/v1/promotions/{id}/activate - Activate promotion
-• POST /api/v1/promotions/{id}/pause - Pause promotion
-• POST /api/v1/promotions/{id}/resume - Resume promotion
-• POST /api/v1/promotions/{id}/cancel - Cancel promotion
+Avoid:
 
-**Rules Management:**
+- `/api/v1/createPromotion`
+- `/api/v1/getAllPromotions`
 
-• GET /api/v1/promotions/{id}/rules - List promotion rules
-• POST /api/v1/promotions/{id}/rules - Add rule
-• DELETE /api/v1/promotions/{id}/rules/{ruleId} - Remove rule
+### Use HTTP Methods Correctly
 
-**Search & Filter:**
+| Method | Purpose | Notes |
+|---|---|---|
+| GET | Read data | Safe and idempotent |
+| POST | Create or trigger domain action | Not idempotent by default |
+| PUT | Replace entire resource | Idempotent |
+| PATCH | Partial update | Usually idempotent |
+| DELETE | Remove or soft-delete | Idempotent |
 
-• GET /api/v1/promotions?status=active&type=percentage&storeId=S001&page=1&pageSize=20
-• GET /api/v1/promotions/search?q=summer&category=seasonal
+### Design for Clarity
 
-**Pricing Engine:**
+API consumers should understand:
 
-• POST /api/v1/pricing/calculate - Calculate final price with promotions
-• POST /api/v1/pricing/validate-cart - Validate cart with promotions
-• GET /api/v1/pricing/applicable/{productId} - Get applicable promotions
+- what the resource is
+- what operation is being performed
+- what validation is expected
+- what response will come back
 
-**Analytics:**
+---
 
-• GET /api/v1/analytics/promotions/{id}/performance - Promotion performance metrics
-• GET /api/v1/analytics/dashboard - Dashboard metrics
-• GET /api/v1/analytics/redemptions - Redemption data
-• GET /api/v1/analytics/reports/{reportId} - Download report
+## 4.3 Promotions API Surface
 
-## 4.3 API Versioning Strategy
+### Core CRUD Endpoints
 
-**URL Path Versioning (Recommended):**
+- `GET /api/v1/promotions`
+- `GET /api/v1/promotions/{id}`
+- `POST /api/v1/promotions`
+- `PUT /api/v1/promotions/{id}`
+- `PATCH /api/v1/promotions/{id}`
+- `DELETE /api/v1/promotions/{id}`
 
-• /api/v1/promotions
-• /api/v2/promotions
-• Clear in URL, easy to route in APIM
-• Allows running multiple versions simultaneously
-• Clients explicitly choose version
+### Lifecycle Endpoints
 
-**Header Versioning:**
+Some operations are not just CRUD updates; they are business transitions.
 
-• X-API-Version: 1.0
-• Cleaner URLs but less discoverable
-• Requires documentation
+- `POST /api/v1/promotions/{id}/submit`
+- `POST /api/v1/promotions/{id}/approve`
+- `POST /api/v1/promotions/{id}/reject`
+- `POST /api/v1/promotions/{id}/schedule`
+- `POST /api/v1/promotions/{id}/activate`
+- `POST /api/v1/promotions/{id}/pause`
+- `POST /api/v1/promotions/{id}/resume`
+- `POST /api/v1/promotions/{id}/cancel`
 
-**Query String Versioning:**
+### Rules and Associations
 
-• /api/promotions?api-version=1.0
-• Least preferred, not RESTful
+- `GET /api/v1/promotions/{id}/rules`
+- `POST /api/v1/promotions/{id}/rules`
+- `DELETE /api/v1/promotions/{id}/rules/{ruleId}`
 
-**Deprecation Strategy:**
+### Search / Filtering
 
-• Support v1 for 6 months after v2 release
-• Send Sunset header: Sunset: Sat, 01 Jun 2025 00:00:00 GMT
-• Send Deprecation header: Deprecation: true
-• Provide migration guide
-• Monitor usage of old version
+- `GET /api/v1/promotions?status=active&page=1&pageSize=20`
+- `GET /api/v1/promotions?type=percentage&storeId=S001`
+- `GET /api/v1/promotions/search?q=summer`
 
-## 4.4 API Response Standards
+### Pricing APIs
 
-**Success Response (Single Resource):**
+- `POST /api/v1/pricing/calculate`
+- `POST /api/v1/pricing/validate-cart`
+- `GET /api/v1/pricing/applicable/{productId}`
 
-```json
-{
-  "data": {
-    "id": "promo-123",
-    "name": "Summer Sale 2024",
-    "type": "PercentageDiscount",
-    "status": "Active",
-    "discountValue": 20.0,
-    "validFrom": "2024-06-01T00:00:00Z",
-    "validTo": "2024-08-31T23:59:59Z"
-  },
-  "meta": {
-    "timestamp": "2024-06-15T10:30:00Z",
-    "correlationId": "abc-123-def"
-  }
-}
-```
+### Analytics APIs
 
-**Success Response (List with Pagination):**
+- `GET /api/v1/analytics/dashboard`
+- `GET /api/v1/analytics/promotions/{id}/performance`
+- `GET /api/v1/analytics/redemptions`
+- `GET /api/v1/analytics/reports/{reportId}`
 
-```json
-{
-  "data": [
-    { "id": "promo-1", "name": "Promo 1" },
-    { "id": "promo-2", "name": "Promo 2" }
-  ],
-  "pagination": {
-    "page": 1,
-    "pageSize": 20,
-    "totalCount": 150,
-    "totalPages": 8,
-    "hasNext": true,
-    "hasPrevious": false
-  },
-  "meta": {
-    "timestamp": "2024-06-15T10:30:00Z",
-    "correlationId": "abc-123-def"
-  }
-}
-```
+---
 
-**Error Response:**
+## 4.4 CRUD vs Domain Action Endpoints
+
+This is an important interview topic.
+
+### CRUD Example
+
+Updating promotion name:
+
+- `PATCH /api/v1/promotions/{id}`
+
+### Domain Action Example
+
+Approving a promotion:
+
+- `POST /api/v1/promotions/{id}/approve`
+
+Why separate them?
+
+Because approval is not just a field update. It is a business action with:
+
+- authorization rules
+- audit requirements
+- notifications
+- lifecycle checks
+- downstream side effects
+
+### Interview-ready explanation
+
+> I use resource endpoints for standard CRUD operations, but I model important business transitions such as approve, activate, and cancel as explicit domain action endpoints because they carry workflow rules and side effects beyond simple data mutation.
+
+---
+
+## 4.5 Sample Create Promotion API
+
+### Request
 
 ```json
 {
-  "error": {
-    "code": "PROMOTION_OVERLAP",
-    "message": "Overlapping promotion exists",
-    "details": [
-      {
-        "field": "validFrom",
-        "message": "Conflicts with promo-456"
-      }
-    ],
-    "traceId": "abc-123-def",
-    "timestamp": "2024-06-15T10:30:00Z"
-  }
+  "name": "Weekend 20% Off",
+  "description": "20% discount on selected categories",
+  "type": "PercentageDiscount",
+  "discountValue": 20,
+  "startDate": "2026-06-06T00:00:00Z",
+  "endDate": "2026-06-08T23:59:59Z",
+  "maxRedemptions": 10000,
+  "storeIds": ["S001", "S002"],
+  "productIds": ["SKU123", "SKU456"]
 }
 ```
 
-## 4.5 Request/Response Handling
+### Success Response
 
-**Request Validation:**
+```json
+{
+  "data": {
+    "id": "promo-123",
+    "name": "Weekend 20% Off",
+    "status": "Draft",
+    "createdAt": "2026-04-08T12:00:00Z"
+  },
+  "meta": {
+    "correlationId": "corr-abc-123",
+    "timestamp": "2026-04-08T12:00:00Z"
+  }
+}
+```
 
-• Validate input format (JSON schema)
-• Validate required fields
-• Validate field types and lengths
-• Validate business rules (discount <= 100%)
-• Return 400 Bad Request with details if validation fails
+### Notes
 
-**Response Transformation:**
+A good API should return:
 
-• Transform domain objects to DTOs
-• Include only necessary fields
-• Mask sensitive data
-• Include hypermedia links (HATEOAS optional)
+- resource ID
+- current state
+- important timestamps
+- trace/correlation metadata
 
-**Pagination:**
+---
 
-• Default page size: 20, max: 100
-• Support offset/limit or page/pageSize
-• Return total count for UI
-• Include hasNext/hasPrevious for navigation
+## 4.6 Request Validation Strategy
 
-**Filtering:**
+Validation should happen in layers.
 
-• Support multiple filters: ?status=active&type=percentage
-• Support operators: ?discount[gte]=20&discount[lte]=50
-• Support sorting: ?sortBy=createdAt&sortOrder=desc
-• Support search: ?q=summer
+### 1. Transport-Level Validation
 
-## 4.6 API Security
+Checks:
 
-**Authentication:**
+- valid JSON
+- correct field types
+- required fields present
+- array lengths
+- string lengths
+- date formats
 
-• JWT tokens in Authorization header
-• OAuth 2.0 for third-party integrations
-• API keys for service-to-service
-• Rotate tokens regularly
+Example:
 
-**Authorization:**
+- `name` required
+- `discountValue` must be numeric
+- `startDate` must be ISO timestamp
 
-• Role-based access control (RBAC)
-• Scope-based permissions
-• Resource-level permissions
-• Audit who accessed what
+### 2. Business Validation
 
-**Rate Limiting:**
+Checks:
 
-• Per user: 1000 requests/hour
-• Per API key: 10000 requests/hour
-• Per IP: 100 requests/minute
-• Return 429 Too Many Requests when exceeded
+- end date after start date
+- percentage discount <= 100
+- promotion not overlapping restricted campaigns
+- store eligibility rules
+- approval requirement based on threshold
 
-**HTTPS/TLS:**
+### 3. Domain-State Validation
 
-• All APIs over HTTPS
-• TLS 1.2 minimum
-• Certificate pinning for mobile apps
+Checks:
 
-**CORS (Cross-Origin Resource Sharing):**
+- only Draft can be submitted
+- only Approved or Scheduled can be activated
+- expired promotion cannot be resumed
 
-• Allow only trusted origins
-• Specify allowed methods (GET, POST, etc.)
-• Specify allowed headers
-• Handle preflight requests
+### Recommendation
+
+Use:
+
+- DTO validation at API boundary
+- FluentValidation in .NET
+- domain rules inside application/domain layer
+
+### Interview-ready explanation
+
+> I separate validation into request validation, business validation, and state transition validation. That keeps the API boundary clean while ensuring the real business rules stay inside the domain or application layer rather than being scattered across controllers.
+
+---
+
+## 4.7 Error Handling Standards
+
+A consistent error format is essential.
+
+### Recommended Error Response
+
+```json
+{
+  "error": {
+    "code": "PROMOTION_OVERLAP",
+    "message": "Another active promotion conflicts with the requested date range.",
+    "details": [
+      {
+        "field": "startDate",
+        "message": "Conflicts with promotion promo-456"
+      }
+    ],
+    "traceId": "trace-123",
+    "correlationId": "corr-abc-123",
+    "timestamp": "2026-04-08T12:05:00Z"
+  }
+}
+```
+
+### Benefits
+
+- frontend can show meaningful messages
+- clients can code against stable error codes
+- support teams can trace failures quickly
+- observability tools can correlate incidents
+
+---
+
+## 4.8 HTTP Status Code Strategy
+
+| Status | Meaning | Example |
+|---|---|---|
+| 200 | Success | GET, PATCH result |
+| 201 | Resource created | POST promotion |
+| 202 | Accepted for async processing | batch import / async activation |
+| 204 | No content | delete or simple action |
+| 400 | Invalid input | malformed payload |
+| 401 | Not authenticated | missing/invalid token |
+| 403 | Authenticated but forbidden | no permission to approve |
+| 404 | Resource not found | promotion ID missing |
+| 409 | Conflict | duplicate or state conflict |
+| 422 | Business rule violation | overlapping promotion |
+| 429 | Too many requests | APIM throttling |
+| 500 | Unexpected server failure | unhandled exception |
+| 503 | Dependency unavailable | downstream service outage |
+
+### Important distinction
+
+- `400` = request format problem
+- `422` = business rule rejected valid-shaped request
+- `409` = conflict with current state or resource uniqueness
+
+---
+
+## 4.9 Pagination, Filtering, and Sorting
+
+List endpoints should never return everything.
+
+### Example
+
+`GET /api/v1/promotions?page=1&pageSize=20&status=active&sortBy=createdAt&sortOrder=desc`
+
+### Recommended Pagination Response
+
+```json
+{
+  "data": [
+    { "id": "promo-1", "name": "Promo 1", "status": "Active" },
+    { "id": "promo-2", "name": "Promo 2", "status": "Active" }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 20,
+    "totalCount": 125,
+    "totalPages": 7,
+    "hasNext": true,
+    "hasPrevious": false
+  },
+  "meta": {
+    "correlationId": "corr-123"
+  }
+}
+```
+
+### Best Practices
+
+- default page size: 20
+- max page size: 100
+- allow filtering by status/type/store/date range
+- allow search text if needed
+- ensure indexes support common filters
+
+---
+
+## 4.10 API Versioning Strategy
+
+Versioning is necessary because APIs evolve.
+
+### Recommended: URL Path Versioning
+
+- `/api/v1/promotions`
+- `/api/v2/promotions`
+
+### Why this works well
+
+- visible and easy to understand
+- easy routing in APIM
+- easy coexistence of multiple versions
+- good for external documentation
+
+### Other options
+
+- header versioning
+- query-string versioning
+
+### Deprecation Strategy
+
+When introducing v2:
+
+- keep v1 for a defined support window
+- return `Deprecation` header
+- return `Sunset` header
+- publish migration guide
+- monitor client usage before retirement
+
+---
+
+## 4.11 API Security Design
+
+### Authentication
+
+Use:
+
+- JWT bearer tokens
+- OAuth 2.0 / OIDC
+- Azure AD / Entra ID
+- client credentials for service-to-service where needed
+
+### Authorization
+
+Use:
+
+- role-based permissions
+- scope-based access
+- action-level authorization
+- resource ownership checks if applicable
+
+### Input Protection
+
+- validate all request bodies
+- reject oversized payloads
+- sanitize loggable fields
+- avoid exposing internal exceptions
+
+### Transport Security
+
+- HTTPS only
+- TLS 1.2+
+- HSTS
+- secure headers
+- optional mTLS internally for sensitive service communication
+
+---
+
+## 4.12 APIM Responsibilities
+
+APIM should handle cross-cutting API concerns.
+
+### Typical responsibilities
+
+- token validation
+- IP filtering
+- rate limiting
+- quota enforcement
+- request/response transformation
+- API product exposure
+- analytics
+- caching for safe GETs
+- version routing
+
+### What APIM should not do
+
+- core business rules
+- workflow decisions
+- domain orchestration
+- data validation that belongs to the domain layer
+
+---
+
+## 4.13 Idempotency in APIs
+
+Some POST operations may be retried by clients.
+
+### Example
+
+Client sends `POST /api/v1/promotions`  
+Network timeout occurs.  
+Client retries.
+
+Without idempotency:
+
+- duplicate promotions may be created
+
+### Solution
+
+Use:
+
+- idempotency key header
+- server-side request tracking
+- replay-safe response behavior
+
+### Example Header
+
+`Idempotency-Key: create-promo-20260408-001`
+
+This is particularly useful for:
+
+- create operations
+- approval commands
+- payment-like or financial workflows
+- external integrations
+
+---
+
+## 4.14 API Design Trade-Off Summary
+
+| Topic | Recommended Approach | Why |
+|---|---|---|
+| Versioning | URL path versioning | Simpler routing and visibility |
+| Error shape | Standard error envelope | Better consistency |
+| Lifecycle actions | Explicit domain endpoints | Better business clarity |
+| List endpoints | Paginated and filterable | Performance and usability |
+| Validation | Layered validation | Separation of concerns |
+| Security | JWT + RBAC + APIM policies | Enterprise-grade protection |
+| Idempotency | Key-based for retries | Safe command handling |
+
+---
+
+## 4.15 How to Explain API Design in Interview
+
+> I design APIs around clear resource boundaries and business actions. CRUD endpoints handle standard resource manipulation, while business transitions like approve or activate are modeled as explicit action endpoints because they carry workflow meaning. I use consistent validation, structured error responses, pagination, versioning through URL paths, and API Management for cross-cutting security and throttling. The goal is to make the API predictable, secure, and easy to evolve.
 
 ---
 
 # 5. DATABASE STRATEGY
 
-## 5.1 Database Per Service Pattern
+## 5.1 Why Database Strategy Matters
 
-**Why Database Per Service:**
+Database design is one of the most important parts of this system because promotions affect:
 
-• Each service owns its data
-• No shared databases (prevents tight coupling)
-• Different services can use different database types
-• Scale databases independently
-• Easier to change database technology per service
+- pricing
+- approval workflows
+- store distribution
+- analytics
+- audit logs
+- operational reliability
 
-**Promotions System Database Allocation:**
+A poor database strategy leads to:
 
-• **Promotion Service**: Azure SQL (promotions, campaigns, rules)
-• **Pricing Engine**: Cosmos DB (prices, price history)
-• **Store Service**: Azure SQL (stores, store groups, POS mappings)
-• **Identity Service**: Azure AD (users, roles)
-• **Analytics Service**: Cosmos DB (events, aggregations)
-• **Notification Service**: Azure SQL (notification templates, history)
+- slow queries
+- data inconsistencies
+- operational pain
+- hard-to-scale services
 
-**Data Sharing Between Services:**
+A good strategy separates workloads by nature:
 
-• Never access another service's database directly
-• Use APIs for synchronous calls
-• Use events for asynchronous updates
-• Cache shared data locally
-• Duplicate data if needed for performance
+- transactional
+- analytical
+- read-heavy
+- event-driven
+- cache-oriented
 
-## 5.2 Azure SQL Database Schema
+---
 
-**Core Tables:**
+## 5.2 Database per Service Pattern
 
-• **Promotions**: id, name, description, type, status, discountValue, discountType, startDate, endDate, maxRedemptions, currentRedemptions, createdBy, createdAt, modifiedBy, modifiedAt
+Each service should own its data store.
 
-• **Campaigns**: id, name, description, promotionIds (array), startDate, endDate, budget, status, createdAt
+### Example Allocation
 
-• **PromotionRules**: id, promotionId, ruleType, condition, value, priority, createdAt
+- Promotion Service → Azure SQL
+- Pricing Engine → SQL/Cosmos depending on design
+- Analytics Service → Cosmos DB / Synapse-style reporting store
+- Notification Service → SQL for templates/history
+- Store Service → SQL for hierarchy + sync status
+- Cache → Redis
+- Search/read projection → Cosmos DB if needed
 
-• **PromotionStores**: promotionId, storeId, createdAt
+### Why this is better
 
-• **Stores**: id, name, storeCode, address, city, state, country, posTerminalIds, createdAt
+- service autonomy
+- independent schema evolution
+- failure isolation
+- independent scaling
+- no hidden coupling through a shared schema
 
-• **Users**: id, email, firstName, lastName, role, permissions, lastLogin, createdAt
+### Important rule
 
-• **AuditLog**: id, entityType, entityId, action, oldValues, newValues, userId, timestamp
+A service should never read another service’s DB directly. It should consume:
 
-• **OutboxMessages**: id, eventType, payload, processed, createdAt, processedAt
+- API
+- event
+- projection
 
-**Indexing Strategy:**
+---
 
-• Primary key on id
-• Unique index on storeCode
-• Index on status for filtering
-• Index on createdAt for sorting
-• Composite index on (storeId, status) for common queries
-• Index on promotionId in PromotionRules
+## 5.3 Write Model vs Read Model
 
-**Partitioning (for large tables):**
+### Write Model
 
-• Partition Promotions by year (startDate)
-• Partition AuditLog by month
-• Partition OutboxMessages by date
+Optimized for:
 
-## 5.3 Cosmos DB Schema
+- business correctness
+- ACID transactions
+- approvals
+- lifecycle changes
+- auditability
 
-**Product Catalog Container:**
+Use case:
 
-• Partition Key: /categoryId
-• Document: { id, productId, name, category, price, stock, attributes }
-• TTL: None (permanent data)
-• Throughput: 10,000 RU/s (high reads)
+- Azure SQL
 
-**Promotion Read Model Container:**
+### Read Model
 
-• Partition Key: /storeId
-• Document: { id, promotionId, storeId, name, discount, applicable, active }
-• TTL: None
-• Throughput: 5,000 RU/s
+Optimized for:
 
-**Shopping Cart Container:**
+- listing active promotions
+- dashboard filtering
+- store lookup
+- fast UI rendering
+- denormalized queries
 
-• Partition Key: /customerId
-• Document: { id, customerId, items, total, createdAt, lastModified }
-• TTL: 86400 (24 hours, auto-expire)
-• Throughput: 20,000 RU/s (high writes during sales)
+Use case:
 
-**Event Store Container:**
+- Cosmos DB or specialized projections
 
-• Partition Key: /aggregateId
-• Document: { id, aggregateId, eventType, payload, timestamp, version }
-• TTL: None (permanent audit trail)
-• Throughput: 15,000 RU/s
+### Why split them?
 
-**Analytics Events Container:**
+Because the best schema for writing is usually not the best schema for reading.
 
-• Partition Key: /eventDate
-• Document: { id, eventType, promotionId, storeId, customerId, amount, timestamp }
-• TTL: 7776000 (90 days)
-• Throughput: 50,000 RU/s (high volume)
+---
 
-## 5.4 Data Consistency Strategies
+## 5.4 Azure SQL Schema Design
 
-**Strong Consistency (Azure SQL):**
+### Core Tables
 
-• Used for transactional data
-• Promotions, campaigns, rules
-• ACID guarantees
-• Immediate consistency
+#### Promotions
 
-**Eventual Consistency (Cosmos DB):**
+Fields:
 
-• Used for read models
-• Analytics data
-• Acceptable delay of seconds/minutes
-• Higher throughput and availability
+- `Id`
+- `Name`
+- `Description`
+- `Type`
+- `Status`
+- `DiscountType`
+- `DiscountValue`
+- `StartDate`
+- `EndDate`
+- `MaxRedemptions`
+- `CurrentRedemptions`
+- `ApprovalStatus`
+- `CreatedBy`
+- `CreatedAt`
+- `ModifiedBy`
+- `ModifiedAt`
+- `Version`
 
-**Handling Eventual Consistency:**
+#### PromotionRules
 
-• Include version number in read model
-• Include timestamp of last update
-• Notify client when data updated
-• Accept stale data for non-critical queries
-• Use write model for critical operations
+Fields:
 
-## 5.5 Data Backup & Recovery
+- `Id`
+- `PromotionId`
+- `RuleType`
+- `Operator`
+- `Value`
+- `Priority`
+- `CreatedAt`
 
-**Azure SQL Backup:**
+#### PromotionStores
 
-• Automatic full backups weekly
-• Automatic differential backups daily
-• Automatic transaction log backups every 5-10 minutes
-• Point-in-time restore for 35 days
-• Geo-redundant backup storage
+Fields:
 
-**Cosmos DB Backup:**
+- `PromotionId`
+- `StoreId`
+- `CreatedAt`
 
-• Automatic backup every 4 hours
-• Retention for 30 days
-• Geo-redundant backup
-• Restore to new account
+#### Campaigns
 
-**Disaster Recovery:**
+Fields:
 
-• Geo-replication for critical databases
-• Read replicas in different regions
-• Failover to replica on primary failure
-• RTO (Recovery Time Objective): < 5 minutes
-• RPO (Recovery Point Objective): < 1 minute
+- `Id`
+- `Name`
+- `Description`
+- `Status`
+- `Budget`
+- `StartDate`
+- `EndDate`
+- `CreatedAt`
+
+#### ApprovalHistory
+
+Fields:
+
+- `Id`
+- `PromotionId`
+- `ApproverId`
+- `Decision`
+- `Comments`
+- `ApprovedAt`
+
+#### AuditLog
+
+Fields:
+
+- `Id`
+- `EntityType`
+- `EntityId`
+- `Action`
+- `OldValues`
+- `NewValues`
+- `UserId`
+- `Timestamp`
+- `CorrelationId`
+
+#### OutboxMessages
+
+Fields:
+
+- `Id`
+- `AggregateId`
+- `EventType`
+- `Payload`
+- `Status`
+- `RetryCount`
+- `CreatedAt`
+- `ProcessedAt`
+
+---
+
+## 5.5 SQL Indexing Strategy
+
+Indexes should match actual query patterns.
+
+### Likely Indexes
+
+- primary key on `Id`
+- index on `Status`
+- index on `StartDate`
+- index on `EndDate`
+- composite index on `(Status, StartDate, EndDate)`
+- index on `(PromotionId)` for related tables
+- index on `(StoreId, PromotionId)` in store mapping table
+- index on `CreatedAt` for admin sorting
+- index on `ProcessedAt` / `Status` in outbox table
+
+### Why indexing matters
+
+Common queries include:
+
+- active promotions by store
+- pending approvals
+- promotions by date range
+- recent changes
+- outbox pending events
+
+Without the right indexes, even moderate traffic can create serious latency.
+
+---
+
+## 5.6 Cosmos DB Read Model Design
+
+Cosmos DB works best when the document structure is aligned to how the application reads data.
+
+### Example: Active Promotions by Store
+
+```json
+{
+  "id": "store-S001-promo-123",
+  "storeId": "S001",
+  "promotionId": "promo-123",
+  "name": "Weekend 20% Off",
+  "status": "Active",
+  "discountType": "Percentage",
+  "discountValue": 20,
+  "applicableProducts": ["SKU123", "SKU456"],
+  "validFrom": "2026-06-06T00:00:00Z",
+  "validTo": "2026-06-08T23:59:59Z",
+  "lastUpdatedAt": "2026-04-08T12:00:00Z"
+}
+```
+
+### Why denormalized?
+
+Because the UI and pricing lookups should not reconstruct data through multiple joins.
+
+---
+
+## 5.7 Cosmos DB Partitioning Strategy
+
+Partition key choice is critical.
+
+### Possible Options
+
+#### Promotion Read Model
+
+Partition key: `/storeId`  
+Why:
+
+- store-specific lookup is common
+- active promotion queries often happen by store or region
+
+#### Analytics Events
+
+Partition key: `/eventDate` or `/promotionId`  
+Choice depends on access pattern:
+
+- by date → operational reporting
+- by promotion → campaign deep dives
+
+#### Event Store
+
+Partition key: `/aggregateId`  
+Why:
+
+- all events for one promotion stay together
+
+### Partitioning Mistakes to Avoid
+
+- using a low-cardinality key
+- using a key that causes hot partitions
+- picking a key based only on current use, not future access patterns
+
+---
+
+## 5.8 Data Consistency Strategy
+
+Not all data needs the same consistency model.
+
+### Strong Consistency
+
+Use for:
+
+- promotion create/update
+- approval decisions
+- state transitions
+- audit data
+- outbox records
+
+### Eventual Consistency
+
+Use for:
+
+- dashboards
+- search views
+- store projections
+- analytics summaries
+- non-critical reporting
+
+### Why this split works
+
+Business correctness must be guaranteed on writes, but reads can tolerate short delays if that improves scalability and responsiveness.
+
+### How to handle eventual consistency well
+
+- include `lastUpdatedAt`
+- include `version`
+- expose refresh/retry in UI where appropriate
+- use write model for critical confirmation screens if needed
+
+---
+
+## 5.9 Audit Logging Strategy
+
+Promotions systems require strong auditability.
+
+### Track:
+
+- who created the promotion
+- who edited it
+- who approved/rejected it
+- what fields changed
+- when the state changed
+- what downstream event was emitted
+
+### Why important
+
+- compliance
+- dispute resolution
+- fraud investigation
+- operational debugging
+- accountability
+
+### Good practice
+
+Store:
+
+- actor ID
+- timestamp
+- old values
+- new values
+- correlation ID
+- source system
+
+---
+
+## 5.10 Backup and Recovery
+
+### Azure SQL
+
+- automated backups
+- point-in-time restore
+- geo-redundant backup
+- failover groups
+
+### Cosmos DB
+
+- periodic backups
+- point-in-time restore capabilities depending on configuration
+- geo-replication support
+
+### Recovery Goals
+
+Define clearly in interview answers:
+
+- **RTO**: how quickly service must recover
+- **RPO**: how much data loss is acceptable
+
+### Example
+
+- RTO: < 30 minutes for full service
+- RPO: < 5 minutes for critical transactional data
+
+You can tune this depending on business criticality.
+
+---
+
+## 5.11 Data Retention Strategy
+
+Not all data should stay forever in hot storage.
+
+### Keep hot
+
+- active promotions
+- recent approvals
+- current read models
+- current store mappings
+
+### Archive or tier
+
+- old audit logs
+- expired promotions older than policy
+- historical analytics
+- old notification history
+
+### Why important
+
+- lower cost
+- better performance
+- easier compliance handling
+
+---
+
+## 5.12 Recommended Database Mapping
+
+| Concern | Recommended Store | Why |
+|---|---|---|
+| Promotion master records | Azure SQL | transactional consistency |
+| Approval history | Azure SQL | auditable workflow |
+| Outbox | Azure SQL | same transaction as writes |
+| Read projections | Cosmos DB | fast denormalized reads |
+| Analytics events | Cosmos DB | scalable event ingestion |
+| Cache | Redis | low-latency repeated access |
+| Files/images | Blob Storage | large object storage |
+
+---
+
+## 5.13 Interview-Ready Explanation for Database Design
+
+> I would use Azure SQL as the write model because promotions require transactional consistency, approval controls, and auditability. I would use Cosmos DB for denormalized read projections and analytics-oriented workloads where high read throughput matters more than relational modeling. Redis would sit in front of common hot data like active promotions and price-related lookups. This separation lets each workload use the storage technology that fits it best.
 
 ---
 
 # 6. EVENT-DRIVEN ARCHITECTURE
 
-## 6.1 Event-Driven System Design
+## 6.1 Why Event-Driven Architecture Fits This System
 
-**Benefits of Event-Driven Architecture:**
+Promotions create many downstream side effects.
 
-• Loose coupling between services
-• Asynchronous processing
-• Scalability (process events at own pace)
-• Auditability (all events recorded)
-• Replay events for recovery
-• Real-time updates to multiple consumers
+When a promotion is created, approved, activated, paused, or expired, multiple systems may need to react:
 
-**Event Types:**
+- pricing
+- store sync
+- notifications
+- audit and analytics
+- dashboards
+- cache invalidation
+- integrations
 
-• **Domain Events**: Business-meaningful events (PromotionActivated, PromotionExpired)
-• **Integration Events**: Events crossing service boundaries
-• **System Events**: Technical events (ServiceStarted, ServiceStopped)
+If every service made direct synchronous calls to every other service:
 
-## 6.2 Event Publishing & Consumption
+- coupling would explode
+- failures would cascade
+- throughput would suffer
+- deployments would become risky
 
-**Event Publishing:**
+Event-driven architecture solves this by publishing facts and allowing interested systems to react independently.
 
-• Promotion Service publishes PromotionCreatedEvent when promotion created
-• Event contains: promotionId, name, type, discount, storeIds, timestamp
-• Published to Service Bus Topic: "promotion-events"
-• Includes metadata: correlationId, causationId, userId
+---
 
-**Event Consumption:**
+## 6.2 Types of Events
 
-• Analytics Service subscribes to "promotion-events" topic
-• Subscription filter: EventType = 'PromotionCreated' OR 'PromotionActivated'
-• Processes event, updates analytics read model
-• Publishes AnalyticsUpdatedEvent
+### Domain Events
 
-**Event Ordering:**
+These represent meaningful business facts inside the domain.
 
-• Single partition for same promotion (by promotionId)
-• Ensures events processed in order
-• Service Bus Sessions maintain order
+Examples:
 
-**Idempotency:**
+- `PromotionCreated`
+- `PromotionSubmitted`
+- `PromotionApproved`
+- `PromotionActivated`
+- `PromotionPaused`
+- `PromotionExpired`
 
-• Generate unique eventId for each event
-• Consumer checks if eventId already processed
-• Skip if already processed (safe to process twice)
-• Store processed eventIds in database
+### Integration Events
 
-## 6.3 Event Schema
+These are events published for other systems to consume.
 
-**Standard Event Format:**
+Examples:
+
+- `PromotionActivatedIntegrationEvent`
+- `PromotionSyncedToStoreEvent`
+- `PromotionAnalyticsUpdatedEvent`
+
+### System Events
+
+These are operational/technical events.
+
+Examples:
+
+- `OutboxPublishFailed`
+- `StoreSyncRetried`
+- `DLQThresholdExceeded`
+
+### Why separate them?
+
+Because not every internal domain event should automatically become an external integration contract.
+
+---
+
+## 6.3 Promotion Lifecycle Events
+
+A practical event chain may look like this:
+
+1. Promotion created
+   - `PromotionCreated`
+
+2. Promotion submitted
+   - `PromotionSubmitted`
+
+3. Approved
+   - `PromotionApproved`
+
+4. Activated
+   - `PromotionActivated`
+
+5. Downstream reactions
+   - `PricingRulesRefreshed`
+   - `PromotionDistributedToStores`
+   - `PromotionActivationNotificationSent`
+   - `PromotionReadModelUpdated`
+
+6. Expired
+   - `PromotionExpired`
+
+---
+
+## 6.4 Standard Event Envelope
+
+A standard event format improves observability and compatibility.
 
 ```json
 {
-  "eventId": "evt-123",
-  "eventType": "PromotionActivated",
-  "aggregateId": "promo-456",
-  "aggregateType": "Promotion",
-  "timestamp": "2024-06-15T10:30:00Z",
-  "version": 1,
-  "correlationId": "corr-789",
-  "causationId": "cmd-012",
-  "userId": "user-345",
-  "data": {
-    "promotionId": "promo-456",
-    "name": "Summer Sale",
-    "storeIds": ["S001", "S002"],
-    "activatedAt": "2024-06-15T10:30:00Z"
-  }
+  "eventId": "evt-123",
+  "eventType": "PromotionActivated",
+  "aggregateId": "promo-456",
+  "aggregateType": "Promotion",
+  "version": 1,
+  "timestamp": "2026-04-08T12:00:00Z",
+  "correlationId": "corr-789",
+  "causationId": "cmd-001",
+  "userId": "user-123",
+  "data": {
+    "promotionId": "promo-456",
+    "storeIds": ["S001", "S002"],
+    "activatedAt": "2026-04-08T12:00:00Z"
+  }
 }
 ```
 
-**Event Versioning:**
+### Important metadata
 
-• Version field indicates schema version
-• Handle multiple versions in consumer
-• Migrate old events to new schema
-• Maintain backward compatibility
+- `eventId` → unique for deduplication
+- `correlationId` → trace across services
+- `causationId` → identify source command/action
+- `version` → schema evolution support
 
-## 6.4 Event Sourcing
+---
 
-**What is Event Sourcing:**
+## 6.5 Event Publishing Flow
 
-• Store all changes as immutable events
-• Current state derived from events
-• Rebuild state by replaying events
-• Complete audit trail
+### Recommended Flow
 
-**Implementation:**
+1. API request updates business state in SQL
+2. same transaction inserts Outbox row
+3. background publisher reads Outbox
+4. publisher sends event to Service Bus topic
+5. consumer services process independently
+6. each consumer updates its own state/projection
 
-• Event Store table: id, aggregateId, eventType, payload, timestamp, version
-• When creating promotion: insert CreatePromotionEvent
-• When activating: insert PromotionActivatedEvent
-• To get current state: replay all events for that promotion
+### Why this is strong
 
-**Benefits:**
+- prevents dual-write inconsistency
+- supports retries
+- tolerates broker outage
+- improves reliability
 
-• Complete audit trail
-• Can see state at any point in time
-• Can replay events to debug issues
-• Temporal queries (what was state on date X)
+---
 
-**Challenges:**
+## 6.6 Azure Service Bus in This Architecture
 
-• Increased storage (all events stored)
-• Eventual consistency
-• Complex queries (need projections)
-• Event schema evolution
+### Topic-based publishing
 
-## 6.5 Dead Letter Queue (DLQ) Handling
+Use a topic like:
 
-**When Messages Go to DLQ:**
+- `promotion-events`
 
-• Message processing fails after max retries
-• Message expires (TTL exceeded)
-• Message size exceeds limit
-• Poison message (causes repeated failures)
+Subscribers:
 
-**DLQ Monitoring:**
+- pricing-subscription
+- analytics-subscription
+- notification-subscription
+- store-sync-subscription
 
-• Monitor DLQ length (should be 0)
-• Alert if messages in DLQ
-• Investigate cause of failure
-• Fix issue and reprocess
+### Why topics are ideal
 
-**Reprocessing from DLQ:**
+One event can fan out to multiple interested consumers without the producer knowing who they are.
 
-• Manual review of failed message
-• Fix underlying issue
-• Move message back to main queue
-• Reprocess
+### Queue usage
 
-**Common Failures:**
+Use queues when one work item should be handled by one logical consumer group, such as:
 
-• Service unavailable (retry with backoff)
-• Invalid message format (fix and reprocess)
-• Missing dependency (wait for dependency)
-• Business rule violation (manual review)
+- POS sync retry queue
+- report generation queue
+- image processing queue
+
+---
+
+## 6.7 Event Ordering
+
+Ordering matters for the same business entity.
+
+### Example problem
+
+If `PromotionPaused` is processed before `PromotionActivated`, consumers may end up in invalid state.
+
+### Approaches
+
+- use `aggregateId` as ordering key
+- use Service Bus sessions
+- ensure consumers handle version/order validation
+- include sequence/version in event payload
+
+### Important note
+
+You often need ordering **per aggregate**, not globally.
+
+---
+
+## 6.8 Idempotency in Event Consumers
+
+In real systems, duplicate delivery happens.
+
+### Example
+
+A consumer receives `PromotionActivated` twice.
+
+If not idempotent:
+
+- same notification may be sent twice
+- same read model may be inserted twice
+- same POS sync may be retriggered
+
+### Safe strategies
+
+- processed-event table
+- upsert projections
+- unique key on `(eventId)` or `(aggregateId, version)`
+- dedupe cache for recent event IDs
+
+### Interview-ready explanation
+
+> In message-driven systems I always assume at-least-once delivery, which means duplicates are possible. So each consumer must be idempotent by checking whether the event has already been processed before applying side effects.
+
+---
+
+## 6.9 Retry Strategy
+
+Not all failures are permanent.
+
+### Retry transient failures
+
+Examples:
+
+- temporary network issue
+- short dependency timeout
+- temporary service unavailability
+
+### Do not blindly retry
+
+Examples:
+
+- invalid schema
+- permanent business violation
+- unsupported event version
+- malformed payload
+
+### Typical retry design
+
+- retry with exponential backoff
+- cap maximum retries
+- move poison messages to DLQ
+- alert if threshold exceeded
+
+---
+
+## 6.10 Dead Letter Queue (DLQ)
+
+DLQ is where failed messages go after retry exhaustion.
+
+### Messages may go to DLQ because:
+
+- consumer code crashes repeatedly
+- payload schema is invalid
+- dependency always fails
+- message expired
+- serialization failed
+
+### DLQ handling process
+
+1. alert team
+2. inspect payload
+3. classify transient vs permanent
+4. fix bug or data issue
+5. replay if safe
+6. document incident/root cause
+
+### Why DLQ matters
+
+Without DLQ, poison messages can block normal processing or disappear without visibility.
+
+---
+
+## 6.11 Event Versioning
+
+Event schemas evolve over time.
+
+### Example
+
+Version 1:
+
+- `promotionId`
+- `storeIds`
+
+Version 2:
+
+- adds `channel`
+- adds `priority`
+
+### Best practices
+
+- include explicit `version`
+- make consumers backward-compatible where possible
+- evolve contract carefully
+- avoid breaking all consumers at once
+- support old and new consumers during transition
+
+---
+
+## 6.12 Event-Driven Messaging vs Event Sourcing
+
+These are related but not the same.
+
+### Event-Driven Messaging
+
+You publish events so other systems can react.
+
+### Event Sourcing
+
+You store events as the source of truth and rebuild current state from them.
+
+### In this system
+
+A practical answer is:
+
+- use event-driven messaging definitely
+- use full event sourcing only if the business needs complete temporal reconstruction and the team can handle added complexity
+
+---
+
+## 6.13 Saga with Events
+
+### Example: Promotion Activation Saga
+
+Step 1:  
+Promotion Service marks promotion as activation-pending and publishes `PromotionActivationStarted`
+
+Step 2:  
+Pricing Engine updates pricing projections and emits `PricingPrepared`
+
+Step 3:  
+Store Service distributes to POS and emits `StoreDistributionCompleted`
+
+Step 4:  
+Notification Service sends alerts and emits `NotificationsSent`
+
+Step 5:  
+Promotion Service finalizes status as `Active`
+
+### Compensation example
+
+If Store Service fails:
+
+- emit `StoreDistributionFailed`
+- revert activation status
+- notify operations
+- trigger retry or rollback
+
+---
+
+## 6.14 Event-Driven Read Models
+
+Events are useful for building projections.
+
+### Example projections
+
+- active promotions by store
+- dashboard KPIs by campaign
+- approval queue counts
+- redemptions by hour
+- top performing promotions
+
+### Why this helps
+
+It keeps query-heavy dashboards away from the transactional write model.
+
+---
+
+## 6.15 Cache Invalidation via Events
+
+Caching improves performance but creates stale data risk.
+
+### Good pattern
+
+On:
+
+- promotion activated
+- paused
+- expired
+- cancelled
+- updated
+
+Publish or react to events that:
+
+- invalidate Redis keys
+- refresh read models
+- update store-specific cache entries
+
+### Why event-based invalidation works
+
+The change source naturally triggers dependent cache refresh logic.
+
+---
+
+## 6.16 Observability for Events
+
+You cannot operate event-driven systems without strong observability.
+
+### Track:
+
+- publish success/failure
+- consumer lag
+- queue length
+- DLQ count
+- retry count
+- processing duration
+- failed event types
+- correlation ID across services
+
+### Tools
+
+- Application Insights
+- Azure Monitor
+- Service Bus metrics
+- centralized logs
+- dashboards and alerts
+
+---
+
+## 6.17 Event-Driven Trade-Off Summary
+
+| Benefit | Cost |
+|---|---|
+| loose coupling | eventual consistency |
+| scalable fan-out | harder debugging |
+| resilience to dependency downtime | duplicate handling needed |
+| independent service evolution | ordering/versioning complexity |
+| better async workflows | more operational visibility needed |
+
+---
+
+## 6.18 Interview-Ready Explanation for Event-Driven Design
+
+> Event-driven architecture is a strong fit for a promotions platform because a single business action often triggers multiple downstream side effects such as pricing updates, store distribution, notifications, analytics, and cache refresh. Instead of tightly coupling all these actions through synchronous calls, I would publish integration events through Azure Service Bus and let each service react independently. To make this reliable, I would use the Outbox pattern, idempotent consumers, retry policies, DLQ handling, and correlation IDs for traceability.
 
 ---
 
 # 7. DEVOPS & CI/CD STRATEGY
 
-## 7.1 CI/CD Pipeline Overview
+## 7.1 Why DevOps Matters in This System
 
-**Continuous Integration (CI):**
+A Promotions Management System is not just built once and left unchanged. It evolves continuously:
 
-• Developer commits code to Git
-• Automated build triggered
-• Run unit tests
-• Run code quality checks (SonarQube)
-• Build Docker image
-• Push to container registry
-• Run security scanning
+- new promotion types are added
+- pricing rules change
+- integrations expand
+- approval logic changes
+- performance and security fixes are released regularly
 
-**Continuous Deployment (CD):**
+This means the platform needs:
 
-• Deploy to dev environment automatically
-• Run integration tests
-• Deploy to staging environment
-• Run smoke tests
-• Manual approval for production
-• Deploy to production
-• Run health checks
-• Monitor for errors
+- safe releases
+- fast feedback
+- strong testing
+- environment consistency
+- rollback capability
+- observability after deployment
 
-## 7.2 Azure DevOps Pipelines
+That is why CI/CD is a core architectural concern, not just an operations detail.
 
-**Pipeline Stages:**
+---
 
-• **Build Stage**: Compile code, run tests, build artifacts
-• **Test Stage**: Run integration tests, security tests
-• **Dev Deploy**: Deploy to development environment
-• **Staging Deploy**: Deploy to staging environment
-• **Prod Deploy**: Manual approval, deploy to production
+## 7.2 CI/CD Goals
 
-**Build Pipeline YAML:**
+A good pipeline should ensure:
+
+- every code change is validated quickly
+- broken code is caught before production
+- environments are reproducible
+- deployments are consistent
+- rollbacks are possible
+- security and quality checks are automated
+
+### Desired outcomes
+
+- short lead time for changes
+- low deployment risk
+- high confidence in releases
+- fast incident recovery
+
+---
+
+## 7.3 Continuous Integration (CI)
+
+CI begins when a developer pushes code or opens a pull request.
+
+### Typical CI Steps
+
+1. checkout source code
+2. restore dependencies
+3. build solution
+4. run unit tests
+5. run integration tests where appropriate
+6. run linting/static analysis
+7. run security scans
+8. build Docker image
+9. publish artifact or image
+
+### What CI should catch early
+
+- compile failures
+- test failures
+- package vulnerabilities
+- style violations
+- contract/schema drift
+- broken Docker build
+- invalid IaC changes
+
+---
+
+## 7.4 Continuous Delivery / Deployment (CD)
+
+CD takes validated artifacts and promotes them across environments.
+
+### Typical Environments
+
+- local
+- development
+- QA / integration
+- staging / pre-production
+- production
+
+### Common Deployment Flow
+
+- deploy to dev automatically
+- run smoke checks
+- deploy to staging
+- run integration and regression tests
+- require approval for production
+- deploy production gradually
+- monitor health
+- rollback if needed
+
+---
+
+## 7.5 Example Pipeline Stages
+
+| Stage | Purpose |
+|---|---|
+| Build | compile application |
+| Test | validate unit/integration/security checks |
+| Package | build Docker image and artifacts |
+| Publish | push image to ACR |
+| Deploy Dev | automatic deployment to dev |
+| Validate | smoke/integration checks |
+| Deploy Staging | candidate release validation |
+| Approve | manual gate if needed |
+| Deploy Prod | controlled production rollout |
+| Observe | check metrics and alerts |
+
+---
+
+## 7.6 GitHub Actions Strategy
+
+For a GitHub-hosted repo, GitHub Actions is a natural choice.
+
+### Workflow responsibilities
+
+- trigger on PR and push
+- build .NET projects
+- run tests
+- build container image
+- push to Azure Container Registry
+- deploy to AKS or other Azure target
+- annotate PR with status
+- protect main branch from broken changes
+
+### Example Workflow Outline
 
 ```yaml
-trigger:
-  - main
+name: promotions-ci-cd
 
-pool:
-  vmImage: 'ubuntu-latest'
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-variables:
-  buildConfiguration: 'Release'
-  dockerRegistryServiceConnection: 'acr-connection'
-  imageRepository: 'promotions-service'
-  containerRegistry: 'myregistry.azurecr.io'
-  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
-  tag: '$(Build.BuildId)'
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-stages:
-- stage: Build
-  jobs:
-  - job: BuildAndTest
-    steps:
-    - task: UseDotNet@2
-      inputs:
-        version: '8.0.x'
-    
-    - task: DotNetCoreCLI@2
-      inputs:
-        command: 'restore'
-        projects: '**/*.csproj'
-    
-    - task: DotNetCoreCLI@2
-      inputs:
-        command: 'build'
-        arguments: '--configuration $(buildConfiguration)'
-    
-    - task: DotNetCoreCLI@2
-      inputs:
-        command: 'test'
-        arguments: '--configuration $(buildConfiguration) --no-build'
-    
-    - task: Docker@2
-      inputs:
-        command: 'build'
-        Dockerfile: $(dockerfilePath)
-        tags: |
-          $(containerRegistry)/$(imageRepository):$(tag)
-          $(containerRegistry)/$(imageRepository):latest
-    
-    - task: Docker@2
-      inputs:
-        command: 'push'
-        containerRegistry: $(dockerRegistryServiceConnection)
-        repository: $(imageRepository)
-        tags: |
-          $(tag)
-          latest
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
-- stage: DeployDev
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - deployment: DeployToDev
-    environment: 'dev'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: KubernetesManifest@0
-            inputs:
-              action: 'deploy'
-              kubernetesServiceConnection: 'aks-dev'
-              namespace: 'default'
-              manifests: |
-                $(Pipeline.Workspace)/manifests/deployment.yml
-              images: |
-                $(containerRegistry)/$(imageRepository):$(tag)
+      - name: Restore
+        run: dotnet restore
 
-- stage: DeployProd
-  dependsOn: DeployDev
-  condition: succeeded()
-  jobs:
-  - deployment: DeployToProd
-    environment: 'prod'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: KubernetesManifest@0
-            inputs:
-              action: 'deploy'
-              kubernetesServiceConnection: 'aks-prod'
-              namespace: 'default'
-              manifests: |
-                $(Pipeline.Workspace)/manifests/deployment.yml
-              images: |
-                $(containerRegistry)/$(imageRepository):$(tag)
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build
+
+  docker:
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to ACR
+        run: echo "login handled here"
+
+      - name: Build image
+        run: docker build -t myregistry.azurecr.io/promotions-service:${{ github.sha }} .
+
+      - name: Push image
+        run: docker push myregistry.azurecr.io/promotions-service:${{ github.sha }}
 ```
 
-## 7.3 GitHub Actions Alternative
+### Best practice
 
-**GitHub Actions Workflow:**
+Split CI from CD when needed, especially if deployment approvals differ by environment.
 
-• Trigger on push to main branch
-• Checkout code
-• Setup .NET environment
-• Restore dependencies
-• Build solution
-• Run tests
-• Build Docker image
-• Push to registry
-• Deploy to AKS
+---
 
-## 7.4 Infrastructure as Code (IaC)
+## 7.7 Infrastructure as Code (IaC)
 
-**Terraform for Azure Resources:**
+Infrastructure should be versioned just like application code.
 
-• Define all Azure resources in code
-• Version control infrastructure
-• Reproducible deployments
-• Easy to create dev/staging/prod environments
+### Common IaC choices
 
-**Key Resources:**
+- Terraform
+- Bicep
+- ARM templates
 
-• Azure SQL Database
-• Cosmos DB
-• Service Bus
-• Key Vault
-• App Service / AKS
-• Storage Account
-• Application Insights
+### Resources likely defined in code
 
-**Benefits:**
+- AKS
+- APIM
+- Azure SQL
+- Cosmos DB
+- Service Bus
+- Key Vault
+- Redis
+- Storage Account
+- Application Insights
+- Log Analytics
+- networking, private endpoints, RBAC
 
-• Infrastructure documented in code
-• Easy to replicate environments
-• Track changes in Git
-• Rollback infrastructure changes
-• Automated provisioning
+### Why IaC matters
 
-## 7.5 Deployment Strategies
+- repeatability
+- version control
+- reviewable infrastructure changes
+- environment consistency
+- disaster recovery support
 
-**Blue-Green Deployment:**
+---
 
-• Two identical production environments (Blue and Green)
-• Currently serving traffic: Blue
-• Deploy new version to Green
-• Test Green environment
-• Switch traffic from Blue to Green
-• Keep Blue as rollback option
+## 7.8 Deployment Strategies
 
-**Advantages:**
+### Rolling Deployment
 
-• Zero-downtime deployment
-• Easy rollback
-• Test in production environment
+Replace pods gradually.
 
-**Disadvantages:**
+**Good for**
 
-• Double infrastructure cost
-• Database migration complexity
+- normal releases
+- Kubernetes-native operations
+- lower infrastructure cost
 
-**Canary Deployment:**
+**Risk**
 
-• Deploy new version to small percentage of servers (5%)
-• Monitor metrics (error rate, latency)
-• Gradually increase percentage (10%, 25%, 50%, 100%)
-• Rollback if issues detected
+- mixed versions briefly coexist
 
-**Advantages:**
+### Blue-Green Deployment
 
-• Low risk
-• Detect issues early
-• Gradual rollout
+Keep two complete environments and switch traffic.
 
-**Disadvantages:**
+**Good for**
 
-• Slower deployment
-• Complex monitoring
+- critical releases
+- safer rollback
+- high availability systems
 
-**Rolling Deployment:**
+**Risk**
 
-• Gradually replace old instances with new ones
-• Update one pod at a time
-• Kubernetes default strategy
-• Zero-downtime
+- higher cost
+- more complex DB migration planning
 
-**Advantages:**
+### Canary Deployment
 
-• Simple
-• No double infrastructure cost
-• Kubernetes native
+Release to small traffic percentage first.
 
-**Disadvantages:**
+**Good for**
 
-• Slower deployment
-• Mixed versions during rollout
+- validating new release in production safely
+- gradual exposure
 
-## 7.6 Monitoring Deployments
+**Risk**
 
-**Health Checks:**
+- requires strong metrics and routing control
 
-• Liveness probe: Is service running?
-• Readiness probe: Is service ready to accept traffic?
-• Startup probe: Has service started?
+### Feature Flags
 
-**Metrics to Monitor:**
+Release code without exposing feature to all users.
 
-• Error rate (should be near 0%)
-• Response time (should be within SLA)
-• CPU/Memory usage
-• Database connections
-• Service Bus queue length
+**Good for**
 
-**Rollback Criteria:**
+- partial rollout
+- experimentation
+- emergency disablement
 
-• Error rate > 1%
-• Response time > 2 seconds
-• Service unavailable
-• Database connection failures
+---
+
+## 7.9 Database Migration Strategy
+
+Database change management is a frequent weak point in interviews.
+
+### Good practice
+
+- make schema changes backward-compatible first
+- deploy application changes after schema readiness
+- avoid destructive changes in same release unless carefully coordinated
+- use expand-and-contract migration pattern
+
+### Example
+
+1. add new column
+2. application writes old + new format
+3. backfill data
+4. switch reads
+5. remove old column later
+
+### Why important
+
+This avoids downtime and version mismatch failures during rolling deployments.
+
+---
+
+## 7.10 Quality Gates
+
+Before promotion to higher environments, enforce gates such as:
+
+- unit test pass rate
+- integration test pass
+- code coverage threshold
+- static analysis quality gate
+- vulnerability scan
+- container scan
+- IaC validation
+- smoke test success
+
+---
+
+## 7.11 Secrets and Configuration in CI/CD
+
+### Never do this
+
+- hardcode connection strings
+- commit secrets to repo
+- place prod secrets in plaintext workflow files
+
+### Recommended
+
+- GitHub secrets / environment secrets
+- Azure Key Vault integration
+- managed identity where possible
+- environment-specific configuration
+- config through Helm values / environment variables / sealed secrets
+
+---
+
+## 7.12 Post-Deployment Validation
+
+Deployment success is not only “kubectl apply succeeded”.
+
+### Validate:
+
+- health endpoints
+- error rate
+- latency
+- queue growth
+- DB connection health
+- logs for startup errors
+- key business flow smoke tests
+
+### Example smoke tests
+
+- get promotions list
+- create draft promotion
+- activate sample promotion in non-prod
+- verify event publication
+
+---
+
+## 7.13 Rollback Strategy
+
+Every release plan should include rollback criteria.
+
+### Typical rollback triggers
+
+- error rate spike
+- latency regression
+- broken auth
+- failed dependency initialization
+- message processing failures
+- schema incompatibility symptoms
+
+### Rollback methods
+
+- redeploy previous container image
+- switch traffic back in blue-green
+- reduce canary to 0%
+- disable feature flag
+- pause message consumers if needed to contain damage
+
+---
+
+## 7.14 Interview-Ready Explanation for DevOps
+
+> For this system I would implement CI/CD with automated build, test, security scanning, Docker image packaging, and environment promotion using GitHub Actions or Azure DevOps. Production deployments should use rolling, canary, or blue-green strategies depending on risk. I would treat infrastructure as code, secure secrets through Key Vault, and validate deployments with smoke tests and observability-based checks before considering a release successful.
 
 ---
 
 # 8. DOCKER & KUBERNETES
 
-## 8.1 Docker Fundamentals
+## 8.1 Why Containers Matter Here
 
-**What is Docker:**
+A microservices-based promotions platform benefits from containers because they provide:
 
-• Containerization platform
-• Package application with dependencies
-• Consistent environment (dev, staging, prod)
-• Lightweight compared to VMs
-• Fast startup time
+- consistent packaging
+- isolated runtime environments
+- easy deployment to AKS
+- simpler scaling and orchestration
+- predictable execution across dev/test/prod
 
-**Docker Components:**
+---
 
-• **Image**: Blueprint for container (immutable)
-• **Container**: Running instance of image
-• **Registry**: Repository for images (Docker Hub, ACR)
-• **Dockerfile**: Instructions to build image
+## 8.2 Docker Fundamentals
 
-**Dockerfile for .NET Core Service:**
+### Core Concepts
+
+- **Image**: immutable packaged artifact
+- **Container**: running instance of image
+- **Dockerfile**: instructions for building image
+- **Registry**: storage for images, e.g., ACR
+
+### Why Docker helps
+
+It removes “works on my machine” problems by packaging:
+
+- application runtime
+- dependencies
+- configuration expectations
+
+---
+
+## 8.3 Dockerfile for .NET Service
 
 ```dockerfile
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY ["Promotion.API/Promotion.API.csproj", "Promotion.API/"]
-COPY ["Promotion.Application/Promotion.Application.csproj", "Promotion.Application/"]
-COPY ["Promotion.Domain/Promotion.Domain.csproj", "Promotion.Domain/"]
-COPY ["Promotion.Infrastructure/Promotion.Infrastructure.csproj", "Promotion.Infrastructure/"]
-
-RUN dotnet restore "Promotion.API/Promotion.API.csproj"
-
 COPY . .
-RUN dotnet build "Promotion.API/Promotion.API.csproj" -c Release -o /app/build
-
-RUN dotnet publish "Promotion.API/Promotion.API.csproj" -c Release -o /app/publish
+RUN dotnet restore
+RUN dotnet publish -c Release -o /app/publish
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
-EXPOSE 80
-EXPOSE 443
-
+EXPOSE 8080
 ENTRYPOINT ["dotnet", "Promotion.API.dll"]
 ```
 
-**Docker Best Practices:**
+### Best Practices
 
-• Use multi-stage builds (separate build and runtime)
-• Use specific base image versions (not latest)
-• Minimize image size (remove unnecessary files)
-• Use .dockerignore to exclude files
-• Run as non-root user
-• Use health checks
-• Keep layers small (each RUN command is a layer)
+- use multi-stage builds
+- use pinned image versions
+- keep image small
+- exclude unnecessary files with `.dockerignore`
+- run as non-root when possible
+- avoid embedding secrets
+- add health checks where appropriate
 
-## 8.2 Azure Container Registry (ACR)
+---
 
-**Why ACR:**
+## 8.4 Azure Container Registry (ACR)
 
-• Private container registry
-• Integrated with Azure services
-• Geo-replication for global distribution
-• Image scanning for vulnerabilities
-• Webhook for CI/CD integration
+ACR is the private registry for storing images.
 
-**ACR Tiers:**
+### Why use ACR
 
-• **Basic**: Development/testing, limited storage
-• **Standard**: Production workloads, more storage
-• **Premium**: High throughput, geo-replication
+- private and secure
+- integrates with AKS
+- supports image scanning and enterprise control
+- avoids dependency on public registries for internal workloads
 
-**Push Image to ACR:**
+### Typical flow
 
-```bash
-# Login to ACR
-az acr login --name myregistry
+1. build image
+2. tag image
+3. push image to ACR
+4. AKS pulls image during deployment
 
-# Tag image
-docker tag promotions-service:latest myregistry.azurecr.io/promotions-service:latest
+---
 
-# Push to ACR
-docker push myregistry.azurecr.io/promotions-service:latest
-```
+## 8.5 Kubernetes Core Objects
 
-## 8.3 Kubernetes Basics
+### Pod
 
-**What is Kubernetes:**
+Smallest deployable unit. Usually one main container per microservice pod.
 
-• Container orchestration platform
-• Automate deployment, scaling, management
-• Self-healing (restart failed containers)
-• Load balancing
-• Rolling updates
-• Resource management
+### Deployment
 
-**Kubernetes Objects:**
+Ensures desired number of pods and handles rollout updates.
 
-• **Pod**: Smallest unit, contains one or more containers
-• **Deployment**: Manages pods, ensures desired state
-• **Service**: Exposes pods (internal or external)
-• **Ingress**: Routes external traffic
-• **ConfigMap**: Configuration data
-• **Secret**: Sensitive data
-• **PersistentVolume**: Storage
-• **StatefulSet**: Stateful applications
+### Service
 
-**Deployment YAML:**
+Stable network endpoint for a set of pods.
+
+### Ingress
+
+Routes external HTTP traffic to services.
+
+### ConfigMap
+
+Stores non-sensitive configuration.
+
+### Secret
+
+Stores sensitive configuration references.
+
+### HorizontalPodAutoscaler
+
+Scales pods based on metrics.
+
+### Namespace
+
+Logical isolation boundary.
+
+---
+
+## 8.6 Example Kubernetes Deployment
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: promotions-service
-  labels:
-    app: promotions-service
+  name: promotions-service
 spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: promotions-service
-  template:
-    metadata:
-      labels:
-        app: promotions-service
-    spec:
-      containers:
-      - name: promotions-service
-        image: myregistry.azurecr.io/promotions-service:latest
-        ports:
-        - containerPort: 80
-        - containerPort: 443
-        env:
-        - name: ASPNETCORE_ENVIRONMENT
-          value: "Production"
-        - name: ConnectionStrings__DefaultConnection
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: connection-string
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health/live
-            port: 80
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health/ready
-            port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 5
+  replicas: 3
+  selector:
+    matchLabels:
+      app: promotions-service
+  template:
+    metadata:
+      labels:
+        app: promotions-service
+    spec:
+      containers:
+        - name: promotions-service
+          image: myregistry.azurecr.io/promotions-service:1.0.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: promotions-service
+  name: promotions-service
 spec:
-  selector:
-    app: promotions-service
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 80
-  type: ClusterIP
+  selector:
+    app: promotions-service
+  ports:
+    - port: 80
+      targetPort: 8080
+```
+
 ---
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: promotions-service-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: promotions-service
-  minReplicas: 3
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
-```
 
-## 8.4 Azure Kubernetes Service (AKS)
+## 8.7 AKS Fit for This Platform
 
-**AKS Features:**
+AKS is appropriate because the system includes:
 
-• Managed Kubernetes cluster
-• Azure handles control plane
-• Auto-scaling of nodes
-• Integration with Azure services
-• Network policies
-• RBAC
-• Monitoring with Application Insights
+- multiple APIs
+- worker/background consumers
+- event processors
+- scaling needs
+- deployment orchestration
+- environment consistency requirements
 
-**Creating AKS Cluster:**
+### Benefits of AKS
 
-```bash
-# Create resource group
-az group create --name myResourceGroup --location eastus
+- auto-scaling
+- rolling upgrades
+- self-healing
+- resource isolation
+- service discovery
+- strong Azure integration
 
-# Create AKS cluster
-az aks create \
-  --resource-group myResourceGroup \
-  --name myAKSCluster \
-  --node-count 3 \
-  --vm-set-type VirtualMachineScaleSets \
-  --load-balancer-sku standard \
-  --enable-managed-identity \
-  --network-plugin azure \
-  --docker-bridge-address 172.17.0.1/16 \
-  --service-cidr 10.0.0.0/16 \
-  --dns-service-ip 10.0.0.10 \
-  --enable-cluster-autoscaling \
-  --min-count 3 \
-  --max-count 10
+### Trade-offs
 
-# Get credentials
-az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
-```
+- operational complexity
+- cluster governance overhead
+- network/security configuration effort
+- cost if overprovisioned
 
-**Deploying to AKS:**
-
-```bash
-# Apply deployment
-kubectl apply -f deployment.yaml
-
-# Check deployment status
-kubectl get deployments
-
-# Check pods
-kubectl get pods
-
-# Check services
-kubectl get services
-
-# View logs
-kubectl logs <pod-name>
-
-# Port forward for testing
-kubectl port-forward svc/promotions-service 8080:80
-```
-
-## 8.5 Service Mesh (Optional)
-
-**What is Service Mesh:**
-
-• Infrastructure layer for service-to-service communication
-• Handles traffic management, security, observability
-• Sidecar proxy in each pod (Istio, Linkerd)
-• Decouples communication from application code
-
-**Benefits:**
-
-• Traffic management (canary, circuit breaker)
-• Security (mTLS, authorization policies)
-• Observability (distributed tracing, metrics)
-• Resilience (retries, timeouts)
-
-**Istio Example:**
-
-```yaml
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  name: promotions-service
-spec:
-  hosts:
-  - promotions-service
-  http:
-  - match:
-    - headers:
-        user-type:
-          exact: canary
-    route:
-    - destination:
-        host: promotions-service
-        subset: v2
-      weight: 100
-  - route:
-    - destination:
-        host: promotions-service
-        subset: v1
-      weight: 90
-    - destination:
-        host: promotions-service
-        subset: v2
-      weight: 10
 ---
-apiVersion: networking.istio.io/v1beta1
-kind: DestinationRule
-metadata:
-  name: promotions-service
-spec:
-  host: promotions-service
-  trafficPolicy:
-    connectionPool:
-      tcp:
-        maxConnections: 100
-      http:
-        http1MaxPendingRequests: 100
-        http2MaxRequests: 1000
-    outlierDetection:
-      consecutive5xxErrors: 5
-      interval: 30s
-      baseEjectionTime: 30s
-  subsets:
-  - name: v1
-    labels:
-      version: v1
-  - name: v2
-    labels:
-      version: v2
-```
+
+## 8.8 Health Probes
+
+### Liveness Probe
+
+Answers: “Should Kubernetes restart me?”
+
+### Readiness Probe
+
+Answers: “Am I ready to receive traffic?”
+
+### Startup Probe
+
+Useful if startup is slow and you want to avoid premature restarts.
+
+### Why this matters
+
+A pod may be running but not actually ready because:
+
+- DB connection failed
+- cache unavailable
+- migrations incomplete
+- config missing
+
+---
+
+## 8.9 Scaling Strategy
+
+### Horizontal scaling
+
+Increase replicas of stateless services.
+
+Good for:
+
+- API services
+- event consumers
+- pricing read workloads
+
+### Vertical scaling
+
+Increase resource size of pods or nodes.
+
+Good for:
+
+- specific memory-heavy workloads
+- temporary bottlenecks
+
+### Node autoscaling
+
+AKS can add/remove nodes.
+
+### Pod autoscaling
+
+HPA can scale based on:
+
+- CPU
+- memory
+- custom metrics
+- queue depth
+
+### Example scaling signal
+
+If Service Bus queue grows, increase consumer replica count.
+
+---
+
+## 8.10 Configuration Management
+
+### Use ConfigMaps for
+
+- non-secret settings
+- URLs
+- feature toggles
+- operational settings
+
+### Use Secrets for
+
+- DB credentials
+- API keys
+- certificates
+- broker secrets
+
+### Best practice
+
+Prefer external secret sources such as Key Vault integration rather than storing long-term secret values directly in cluster manifests.
+
+---
+
+## 8.11 Network Policies
+
+Kubernetes network policies restrict traffic between workloads.
+
+### Why needed
+
+By default, open communication inside a cluster can increase blast radius.
+
+### Example policy goal
+
+- APIM/Ingress can call Promotion Service
+- Promotion Service can call SQL/Service Bus dependencies
+- Notification Service cannot arbitrarily talk to every internal service
+
+### Benefit
+
+Supports least privilege networking.
+
+---
+
+## 8.12 Service Mesh Optionality
+
+A service mesh like Istio or Linkerd may help when the system grows large.
+
+### Benefits
+
+- mTLS
+- traffic shaping
+- retries and timeouts
+- observability
+- canary routing
+
+### But don’t overuse it
+
+For smaller teams or simpler systems, a service mesh may add unnecessary complexity.
+
+### Interview answer
+
+> I would consider a service mesh only if the platform grows large enough that centralized traffic management, mTLS, and advanced routing justify the operational overhead.
+
+---
+
+## 8.13 Interview-Ready Explanation for Docker/Kubernetes
+
+> I would package each .NET service as a Docker image and deploy them to AKS for orchestration. Kubernetes handles replicas, self-healing, service discovery, and rolling deployments, while ACR stores the images. I would use readiness and liveness probes, HPA for scaling, ConfigMaps and Secrets for configuration, and network policies for internal security boundaries.
 
 ---
 
 # 9. SECURITY ARCHITECTURE
 
-## 9.1 Authentication & Authorization
+## 9.1 Why Security Is Critical
 
-**Authentication (Who are you):**
+Promotions systems may appear business-focused, but they involve sensitive areas such as:
 
-• OAuth 2.0 / OpenID Connect (OIDC)
-• JWT tokens
-• Azure AD B2C for customer authentication
-• Azure AD for employee authentication
-• Multi-factor authentication (MFA)
+- authentication and authorization
+- discount abuse prevention
+- internal business strategy
+- customer-related transaction data
+- pricing and margin logic
+- integration credentials
+- production operational access
 
-**Authorization (What can you do):**
+A weak security model can cause:
 
-• Role-Based Access Control (RBAC)
-• Scope-based permissions
-• Resource-level permissions
-• Claim-based authorization
+- fraud
+- unauthorized promotion activation
+- brand damage
+- financial loss
+- compliance incidents
 
-**JWT Token Structure:**
+---
 
-```
-Header.Payload.Signature
+## 9.2 Security Layers
 
-Header: { "alg": "HS256", "typ": "JWT" }
-Payload: { "sub": "user-123", "role": "admin", "scope": "promotions:write", "exp": 1234567890 }
-Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)
-```
+Security should be layered, not concentrated in one component.
 
-**Authorization in .NET:**
+### Main layers
 
-```csharp
-[Authorize(Roles = "Admin")]
-[HttpPost("/api/v1/promotions/{id}/approve")]
-public async Task<IActionResult> ApprovePromotion(string id)
-{
-    // Only admins can approve
-}
+- edge security
+- API security
+- identity and access management
+- data protection
+- network isolation
+- secrets management
+- workload identity
+- auditing and monitoring
 
-[Authorize(Policy = "CanEditPromotion")]
-[HttpPut("/api/v1/promotions/{id}")]
-public async Task<IActionResult> UpdatePromotion(string id)
-{
-    // Custom policy
-}
-```
+---
 
-## 9.2 API Security
+## 9.3 Authentication
 
-**API Key Management:**
+### External/User Authentication
 
-• Generate unique API keys per client
-• Store in Key Vault
-• Rotate keys regularly
-• Revoke compromised keys
-• Track API key usage
+Use:
 
-**Rate Limiting:**
+- OAuth 2.0
+- OpenID Connect
+- Microsoft Entra ID / Azure AD
+- Azure AD B2C / Entra External ID if customer-facing scenarios exist
 
-• Per user: 1000 requests/hour
-• Per API key: 10000 requests/hour
-• Per IP: 100 requests/minute
-• Implement in APIM
+### Token type
 
-**CORS (Cross-Origin Resource Sharing):**
+JWT bearer tokens are common for API access.
 
-• Allow only trusted origins
-• Specify allowed methods
-• Specify allowed headers
-• Handle preflight requests
+### What authentication proves
 
-**HTTPS/TLS:**
+Identity: who the caller is.
 
-• All APIs over HTTPS
-• TLS 1.2 minimum
-• Certificate pinning for mobile apps
-• HSTS header to force HTTPS
+---
 
-## 9.3 Data Security
+## 9.4 Authorization
 
-**Encryption at Rest:**
+Authentication is not enough. We must also enforce what the authenticated user can do.
 
-• Azure SQL: Transparent Data Encryption (TDE)
-• Cosmos DB: Encryption enabled by default
-• Blob Storage: Encryption enabled
-• Use customer-managed keys (CMK) for sensitive data
+### Common authorization models
 
-**Encryption in Transit:**
+- Role-Based Access Control (RBAC)
+- claim-based authorization
+- policy-based authorization
+- scope-based access for APIs
 
-• HTTPS for all APIs
-• TLS 1.2 minimum
-• mTLS for service-to-service communication
-• Encrypt sensitive data in messages
+### Example roles
 
-**Data Masking:**
+- Admin
+- Campaign Manager
+- Approver
+- Viewer
+- Store Operations User
 
-• Mask PII in logs
-• Mask credit card numbers
-• Mask email addresses
-• Use Azure SQL Dynamic Data Masking
+### Example rules
 
-**Data Retention:**
+- only approvers can approve promotions
+- only admins can cancel active promotions globally
+- store-level users can only view their own region/store data
 
-• Delete old data per policy
-• Archive old data to cold storage
-• Comply with GDPR (right to be forgotten)
-• Audit trail retention (7 years)
+---
 
-## 9.4 Secret Management
+## 9.5 Authentication vs Authorization
 
-**Azure Key Vault:**
+This is a common interview question.
 
-• Store database connection strings
-• Store API keys
-• Store certificates
-• Store encryption keys
-• Managed Identity for access
+### Authentication
 
-**Rotation:**
+Who are you?
 
-• Rotate secrets every 90 days
-• Rotate certificates before expiration
-• Automated rotation policies
-• No downtime during rotation
+### Authorization
 
-**Access Control:**
+What are you allowed to do?
 
-• Use RBAC for Key Vault access
-• Audit who accessed secrets
-• Restrict access to production secrets
-• Use Managed Identity (no credentials in code)
+### Example
 
-## 9.5 Network Security
+A user may be authenticated successfully but still receive `403 Forbidden` when trying to approve a promotion without the required role.
 
-**Network Policies:**
+---
 
-• Restrict traffic between pods
-• Allow only necessary communication
-• Deny by default, allow explicitly
+## 9.6 API Security
 
-**Firewall Rules:**
+### Protect APIs using
 
-• Whitelist IP addresses
-• Block suspicious traffic
-• DDoS protection
-• Web Application Firewall (WAF)
+- JWT validation
+- APIM policies
+- HTTPS only
+- request validation
+- size limits
+- throttling
+- anti-abuse protections
+- secure headers
 
-**VNet Integration:**
+### Rate Limiting Examples
 
-• Deploy AKS in VNet
-• Private endpoints for databases
-• Service endpoints for Azure services
-• Network segmentation
+- per user
+- per client application
+- per IP
+- per API product/tenant
 
-**Example Network Policy:**
+### Why needed
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: promotions-service-netpol
-spec:
-  podSelector:
-    matchLabels:
-      app: promotions-service
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          app: api-gateway
-    ports:
-    - protocol: TCP
-      port: 80
-  egress:
-  - to:
-    - podSelector:
-        matchLabels:
-          app: pricing-engine
-    ports:
-    - protocol: TCP
-      port: 80
-  - to:
-    - namespaceSelector: {}
-      podSelector:
-        matchLabels:
-          k8s-app: kube-dns
-    ports:
-    - protocol: UDP
-      port: 53
-```
+To prevent:
+
+- accidental overload
+- bot abuse
+- brute-force style abuse
+- noisy client behavior
+
+---
+
+## 9.7 Service-to-Service Security
+
+### Recommended approach
+
+- managed identity where possible
+- short-lived credentials
+- RBAC-based access
+- private networking
+- optional mTLS for high-security environments
+
+### Avoid
+
+- static shared secrets in config files
+- broad access tokens
+- credential reuse across services
+
+---
+
+## 9.8 Secrets Management
+
+### Store in Key Vault
+
+- DB connection strings
+- broker secrets
+- external API keys
+- certificates
+- encryption keys
+- signing credentials
+
+### Best practices
+
+- use managed identity
+- rotate regularly
+- audit access
+- separate per environment
+- enable soft delete and purge protection
+
+---
+
+## 9.9 Data Protection
+
+### Encryption at Rest
+
+- Azure SQL TDE
+- Cosmos DB encryption
+- Blob encryption
+- customer-managed keys where necessary
+
+### Encryption in Transit
+
+- HTTPS/TLS
+- internal TLS
+- private endpoints
+- mTLS if required
+
+### Sensitive Data Handling
+
+- minimize storage of sensitive data
+- mask PII in logs
+- redact secrets
+- apply least privilege access
+
+---
+
+## 9.10 Network Security
+
+### Protect with
+
+- WAF at edge
+- APIM policies
+- VNets
+- private endpoints
+- NSGs / firewall rules
+- Kubernetes network policies
+- restricted outbound access where possible
+
+### Why this matters
+
+Even if application auth is strong, broad flat network access increases attack surface.
+
+---
+
+## 9.11 Fraud / Abuse Controls in Promotions
+
+This is domain-specific security.
+
+### Risks
+
+- repeated redemption abuse
+- unauthorized promotion creation
+- overlapping or malicious discounts
+- store sync manipulation
+- internal misuse
+
+### Mitigations
+
+- approval workflows
+- max redemption limits
+- per-customer constraints
+- audit logs
+- anomaly detection
+- approval thresholds by discount amount
+- four-eyes principle for high-risk campaigns
+
+---
+
+## 9.12 Auditing and Security Monitoring
+
+### Track
+
+- login failures
+- role changes
+- promotion approval actions
+- unusual API access patterns
+- secret access
+- failed store sync attempts
+- suspicious redemption behavior
+
+### Why important
+
+Security without detection is incomplete.
+
+---
+
+## 9.13 Secure SDLC Practices
+
+Security should be part of delivery, not only runtime.
+
+### Include:
+
+- dependency scanning
+- container image scanning
+- SAST
+- secrets scanning in repo
+- least privilege CI tokens
+- PR reviews
+- environment protection rules
+
+---
+
+## 9.14 Interview-Ready Explanation for Security
+
+> I would secure this platform in layers. At the edge I would use WAF, HTTPS, and API Management policies. For identity I would use OAuth 2.0 and JWT tokens with RBAC or policy-based authorization. Secrets would be stored in Key Vault and accessed via managed identity. Data would be encrypted at rest and in transit, and service-to-service communication would use private networking and least privilege. Because promotions can directly impact revenue, I would also include audit logging, approval workflows, and fraud controls such as redemption limits and anomaly detection.
 
 ---
 
 # 10. REACT FRONTEND ARCHITECTURE
 
-## 10.1 React Application Structure
+## 10.1 Frontend Role in This System
 
-**Project Layout:**
+The React frontend is the main control surface for business users such as:
 
-• src/
-  - components/ (Reusable UI components)
-  - pages/ (Page components)
-  - services/ (API calls)
-  - hooks/ (Custom hooks)
-  - context/ (Context API for state)
-  - utils/ (Helper functions)
-  - types/ (TypeScript types)
-  - styles/ (CSS/SCSS)
-  - App.tsx (Root component)
-  - index.tsx (Entry point)
+- marketing managers
+- approvers
+- analysts
+- store operations teams
+- admins
 
-## 10.2 State Management
+It should provide:
 
-**Redux vs Context API:**
+- fast navigation
+- role-based UI
+- clear validation
+- traceable workflows
+- real-time visibility into promotion state
 
-• **Redux**: Large applications, complex state, time-travel debugging
-• **Context API**: Small applications, simple state, less boilerplate
+---
 
-**Redux Store Structure:**
+## 10.2 Suggested Project Structure
 
-• promotions slice (list, create, update, delete)
-• campaigns slice (manage campaigns)
-• filters slice (search, sort, pagination)
-• ui slice (loading, error, modal states)
-• auth slice (user, permissions)
+```text
+src/
+  components/
+  pages/
+  features/
+  services/
+  hooks/
+  context/
+  store/
+  utils/
+  types/
+  styles/
+  App.tsx
+  main.tsx
+```
 
-## 10.3 API Integration
+### Suggested feature grouping
 
-**Axios Instance:**
+- promotions
+- campaigns
+- approvals
+- analytics
+- auth
+- shared UI
+
+Feature-based structure usually scales better than purely technical folders.
+
+---
+
+## 10.3 State Management
+
+### When to use Context
+
+Good for:
+
+- theme
+- auth session basics
+- simple app-wide state
+
+### When to use Redux / Redux Toolkit
+
+Good for:
+
+- large shared state
+- predictable async flows
+- normalized entity storage
+- debugging complex UI state
+
+### Good slices for this system
+
+- auth
+- promotions
+- approvals
+- filters
+- ui
+- dashboard
+
+---
+
+## 10.4 API Layer Design
+
+Keep API logic separate from components.
+
+### Why
+
+Components should focus on rendering and interaction, not low-level HTTP details.
+
+### Good layering
+
+- API client setup
+- feature service methods
+- hooks/query layer
+- UI consumption
+
+### Common choices
+
+- Axios
+- Fetch wrapper
+- React Query / TanStack Query for server state
+
+---
+
+## 10.5 Example Axios Client
 
 ```typescript
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
-  timeout: 10000,
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 10000,
 });
 
-// Add JWT token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
-
-// Handle errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Redirect to login
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-export default api;
-```
-
-**API Service:**
-
-```typescript
-import api from './api';
-
-export const promotionService = {
-  getPromotions: (page: number, pageSize: number) =>
-    api.get('/promotions', { params: { page, pageSize } }),
-  
-  getPromotion: (id: string) =>
-    api.get(`/promotions/${id}`),
-  
-  createPromotion: (data: CreatePromotionRequest) =>
-    api.post('/promotions', data),
-  
-  updatePromotion: (id: string, data: UpdatePromotionRequest) =>
-    api.patch(`/promotions/${id}`, data),
-  
-  activatePromotion: (id: string) =>
-    api.post(`/promotions/${id}/activate`),
-  
-  cancelPromotion: (id: string) =>
-    api.post(`/promotions/${id}/cancel`),
-};
-```
-
-## 10.4 Component Examples
-
-**Promotion List Component:**
-
-```typescript
-import React, { useEffect, useState } from 'react';
-import { promotionService } from '../services/promotionService';
-import PromotionCard from './PromotionCard';
-
-interface Promotion {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  discount: number;
-}
-
-const PromotionList: React.FC = () => {
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-
-  useEffect(() => {
-    fetchPromotions();
-  }, [page, pageSize]);
-
-  const fetchPromotions = async () => {
-    try {
-      setLoading(true);
-      const response = await promotionService.getPromotions(page, pageSize);
-      setPromotions(response.data.data);
-    } catch (err) {
-      setError('Failed to load promotions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="error">{error}</div>;
-
-  return (
-    <div className="promotion-list">
-      <h1>Promotions</h1>
-      <div className="grid">
-        {promotions.map((promo) => (
-          <PromotionCard key={promo.id} promotion={promo} />
-        ))}
-      </div>
-      <div className="pagination">
-        <button onClick={() => setPage(page - 1)} disabled={page === 1}>
-          Previous
-        </button>
-        <span>Page {page}</span>
-        <button onClick={() => setPage(page + 1)}>Next</button>
-      </div>
-    </div>
-  );
-};
-
-export default PromotionList;
-```
-
-**Create Promotion Form:**
-
-```typescript
-import React, { useState } from 'react';
-import { promotionService } from '../services/promotionService';
-
-interface CreatePromotionRequest {
-  name: string;
-  description: string;
-  type: string;
-  discountValue: number;
-  startDate: string;
-  endDate: string;
-  maxRedemptions?: number;
-}
-
-const CreatePromotionForm: React.FC = () => {
-  const [formData, setFormData] = useState<CreatePromotionRequest>({
-    name: '',
-    description: '',
-    type: 'PercentageDiscount',
-    discountValue: 0,
-    startDate: '',
-    endDate: '',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'discountValue' ? parseFloat(value) : value,
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      setError(null);
-      await promotionService.createPromotion(formData);
-      setSuccess(true);
-      setFormData({
-        name: '',
-        description: '',
-        type: 'PercentageDiscount',
-        discountValue: 0,
-        startDate: '',
-        endDate: '',
-      });
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to create promotion');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="form">
-      <h2>Create Promotion</h2>
-      
-      {error && <div className="error">{error}</div>}
-      {success && <div className="success">Promotion created successfully!</div>}
-
-      <div className="form-group">
-        <label htmlFor="name">Name</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="description">Description</label>
-        <input
-          type="text"
-          id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="type">Type</label>
-        <select id="type" name="type" value={formData.type} onChange={handleChange}>
-          <option value="PercentageDiscount">Percentage Discount</option>
-          <option value="FlatDiscount">Flat Discount</option>
-          <option value="BuyOneGetOne">Buy One Get One</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="discountValue">Discount Value</label>
-        <input
-          type="number"
-          id="discountValue"
-          name="discountValue"
-          value={formData.discountValue}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="startDate">Start Date</label>
-        <input
-          type="datetime-local"
-          id="startDate"
-          name="startDate"
-          value={formData.startDate}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="endDate">End Date</label>
-        <input
-          type="datetime-local"
-          id="endDate"
-          name="endDate"
-          value={formData.endDate}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <button type="submit" disabled={loading}>
-        {loading ? 'Creating...' : 'Create Promotion'}
-      </button>
-    </form>
-  );
-};
-
-export default CreatePromotionForm;
-```
-
-## 10.5 Real-Time Updates with SignalR
-
-**SignalR Connection:**
-
-```typescript
-import * as signalR from '@microsoft/signalr';
-
-const connection = new signalR.HubConnectionBuilder()
-  .withUrl(process.env.REACT_APP_SIGNALR_URL)
-  .withAutomaticReconnect()
-  .build();
-
-connection.start().catch(err => console.error(err));
-
-// Listen for promotion updates
-connection.on('PromotionUpdated', (promotion) => {
-  // Update UI with new promotion data
-  console.log('Promotion updated:', promotion);
-});
-
-export default connection;
-```
-
-**Using SignalR in Component:**
-
-```typescript
-useEffect(() => {
-  connection.on('PromotionActivated', (promotionId) => {
-    // Refresh promotion list
-    fetchPromotions();
-  });
-
-  return () => {
-    connection.off('PromotionActivated');
-  };
-}, []);
 ```
 
 ---
 
-# 11. RETAIL DOMAIN / POS
+## 10.6 Form Handling
 
-## 11.1 POS (Point of Sale) System Basics
+Creating or editing promotions usually involves:
 
-**What is POS:**
+- many fields
+- dynamic rules
+- date validations
+- store/product selectors
+- server-side validation feedback
 
-• System at checkout counter
-• Scans items, calculates total
-• Processes payments
-• Prints receipts
-• Manages inventory
-• Tracks sales
+### Recommended tools
 
-**POS Hardware:**
+- React Hook Form
+- Zod/Yup
+- component libraries like MUI or Ant Design
 
-• Cash register/terminal
-• Barcode scanner
-• Receipt printer
-• Payment terminal
-• Customer display
-• Scale (for produce)
+### Why this matters
 
-## 11.2 Promotion Integration with POS
+Promotions are rule-heavy. Good form architecture improves accuracy and usability.
 
-**How Promotions Reach POS:**
+---
 
-• Promotion created and activated in cloud system
-• Event published to Service Bus
-• Store Service listens to event
-• Transforms promotion to POS format
-• Pushes to POS terminal via API/file
-• POS applies discount at checkout
+## 10.7 UI Concerns for Promotions
 
-**POS Promotion Data:**
+Important UI features:
 
-• Promotion ID (unique identifier)
-• Promotion name/description
-• Discount type (percentage, flat, BOGO)
-• Discount value
-• Applicable product codes
-• Applicable store codes
-• Valid date range
-• Max redemptions
-• Exclusions (products, customers)
+- draft save
+- clear validation messages
+- conflict warnings
+- approval status timeline
+- schedule preview
+- audit history
+- filters and search
+- paginated grids
+- bulk actions where allowed
 
-**POS Sync Process:**
+---
 
-• Promotion Service publishes PromotionActivatedEvent
-• Store Service receives event
-• Queries applicable stores
-• Transforms to POS format (XML/JSON)
-• Calls POS API for each store
-• POS confirms receipt
-• Store Service publishes PromotionSyncedEvent
-• Analytics Service tracks sync success
+## 10.8 Real-Time Updates
 
-## 11.3 Retail Domain Concepts
+Useful scenarios:
 
-**SKU (Stock Keeping Unit):**
+- approval status changed by another user
+- promotion activated
+- store sync status updated
+- dashboard metrics refreshed
 
-• Unique identifier for product
-• Barcode number
-• Example: 1234567890123
+### Options
 
-**Product Hierarchy:**
+- SignalR
+- polling
+- hybrid approach
 
-• Category (e.g., Grocery)
-• Subcategory (e.g., Beverages)
-• Product (e.g., Coca Cola)
-• Variant (e.g., 2L Bottle)
+### Recommendation
 
-**Store Hierarchy:**
+Use real-time updates selectively for high-value areas such as:
 
-• Region (e.g., North America)
-• Zone (e.g., Northeast)
-• District (e.g., New York)
-• Store (e.g., Times Square)
+- approvals dashboard
+- activation tracking
+- operational monitoring
 
-**Promotion Types in Retail:**
+---
 
-• **Percentage Discount**: 20% off
-• **Flat Discount**: $5 off
-• **Buy One Get One (BOGO)**: Buy 1, get 1 free
-• **Buy X Get Y**: Buy 2, get 3rd at 50%
-• **Bundle Deal**: 3 items for $10
-• **Loyalty Points**: Earn 2x points
-• **Free Shipping**: Free shipping on order
-• **Tiered Discount**: $5 off $25, $10 off $50
+## 10.9 Error Handling in UI
 
-## 11.4 Redemption Tracking
+The frontend should distinguish:
 
-**Redemption Flow:**
+- validation errors
+- authorization errors
+- network errors
+- server errors
+- stale state or conflict errors
 
-• Customer purchases item at POS
-• POS applies promotion
-• Records redemption in local database
-• Syncs to cloud at end of day
-• Analytics Service processes redemption
-• Updates promotion redemption count
-• Checks if max redemptions reached
+### Example UX
 
-**Redemption Data:**
+- 400/422 → show inline form errors
+- 401 → redirect to login
+- 403 → show permission denied
+- 409 → show resource changed/conflict
+- 500 → show generic error with retry
 
-• Redemption ID
-• Promotion ID
-• Store ID
-• Product ID
-• Customer ID (optional)
-• Discount amount
-• Original price
-• Final price
-• Timestamp
+---
 
-**Analytics Metrics:**
+## 10.10 Performance Considerations
 
-• Total redemptions
-• Redemption rate (redemptions / impressions)
-• Average discount per redemption
-• Revenue impact
-• ROI (Return on Investment)
-• Margin impact
+### Optimize with
 
-## 11.5 Inventory Management
+- lazy loading routes
+- memoized selectors
+- pagination
+- virtualized tables for large lists
+- query caching
+- debounced search
+- code splitting
 
-**Inventory Sync:**
+### Why important
 
-• POS maintains local inventory
-• Syncs to cloud periodically
-• Cloud system has master inventory
-• Promotions consider inventory levels
-• Don't promote out-of-stock items
+Admin dashboards and list-heavy management screens can become slow quickly if everything loads eagerly.
 
-**Stock Levels:**
+---
 
-• On-hand: Physical stock in store
-• Available: On-hand minus reserved
-• Reserved: Items for pending orders
-• Damaged: Unsellable items
+## 10.11 Interview-Ready Explanation for Frontend
 
-**Inventory Alerts:**
+> On the frontend I would use React with TypeScript and a feature-based structure. Shared state such as authentication and promotion workflows can be managed using Redux Toolkit or React Query depending on whether the state is client or server-oriented. Forms should support strong validation and clear feedback because promotions are rule-heavy. For operational updates such as approval changes or activation state, I would use SignalR or efficient polling.
 
-• Alert when stock below threshold
-• Alert when out of stock
-• Alert when overstock
-• Trigger replenishment orders
+---
+
+# 11. RETAIL DOMAIN / POS KNOWLEDGE
+
+## 11.1 Why Retail Context Matters
+
+A Promotions Management System is not only a software platform. It must align with retail operations.
+
+That means understanding:
+
+- how promotions are defined
+- how pricing is applied at checkout
+- how stores operate
+- how POS systems sync
+- how redemption is tracked
+- how errors affect real customers
+
+---
+
+## 11.2 What a POS System Does
+
+POS stands for Point of Sale.
+
+It typically handles:
+
+- item scanning
+- price lookup
+- tax calculation
+- discount application
+- payment processing
+- receipt generation
+- local inventory interaction
+- local/offline transaction capture
+
+In many retail environments, POS systems may:
+
+- be store-local
+- synchronize periodically
+- have limited real-time connectivity
+- use legacy formats
+
+---
+
+## 11.3 How Promotions Reach POS
+
+### Typical flow
+
+1. promotion created in cloud
+2. approved and activated
+3. event published
+4. store integration service transforms format
+5. promotion distributed to POS endpoints or store hubs
+6. POS loads updated promotion rules
+7. checkout applies promotion if the criteria match
+
+### Important operational point
+
+The POS may not always query the cloud in real time. Often it uses a locally synced promotion dataset.
+
+---
+
+## 11.4 Promotion Types in Retail
+
+Common types:
+
+- percentage discount
+- flat discount
+- BOGO
+- buy X get Y
+- bundle pricing
+- spend threshold discount
+- store-specific markdown
+- loyalty bonus
+- category-based promotion
+- time-window promotion
+
+### Why this matters in interviews
+
+Good candidates understand that pricing logic can become complex when multiple promotion types overlap.
+
+---
+
+## 11.5 Conflict Resolution
+
+A real retail platform must define what happens when:
+
+- two promotions apply to same SKU/cart
+- cart-level and item-level discounts overlap
+- loyalty and standard promotions stack
+- store-specific override exists
+
+### Common strategies
+
+- highest discount wins
+- priority order
+- non-stackable rules
+- exclusive flags
+- campaign precedence
+- customer-segment precedence
+
+### Important
+
+Conflict resolution should be centralized in the Pricing Engine, not scattered across services.
+
+---
+
+## 11.6 Redemption Tracking
+
+When a promotion is used at checkout, capture:
+
+- promotion ID
+- SKU/product
+- store ID
+- terminal ID
+- transaction ID
+- quantity
+- discount amount
+- timestamp
+- customer/loyalty ID if applicable
+
+### Why this matters
+
+Redemption data supports:
+
+- ROI analysis
+- fraud detection
+- campaign optimization
+- reconciliation
+
+---
+
+## 11.7 Inventory Considerations
+
+Promotions can impact demand strongly.
+
+### Important checks
+
+- do not promote unavailable items
+- account for regional stock variation
+- monitor out-of-stock risk during campaigns
+- coordinate with replenishment systems
+
+### Interview insight
+
+A promotion can be technically valid but operationally harmful if inventory cannot support it.
+
+---
+
+## 11.8 Offline / Sync Challenges
+
+Stores or terminals may go offline.
+
+### Design considerations
+
+- retry distribution
+- local cache of promotions
+- reconciliation after reconnect
+- version tracking
+- conflict handling for late-arriving updates
+
+### Example failure
+
+A promotion is activated centrally but not received by one store for 2 hours. The system should:
+
+- detect sync lag
+- retry
+- alert operations
+- reconcile missed redemptions if required by policy
+
+---
+
+## 11.9 Interview-Ready Explanation for Retail/POS
+
+> In retail, a promotion is only successful if it is applied correctly at the point of sale. That means the cloud system must not only manage promotion definitions but also distribute them reliably to store systems, handle offline scenarios, resolve conflicts consistently in the pricing engine, and track redemptions accurately for analytics and fraud prevention. Understanding store operations and POS constraints is essential for designing a realistic promotions platform.
 
 ---
 
 # 12. MONITORING & OBSERVABILITY
 
-## 12.1 Application Insights
+## 12.1 Why Observability Matters
 
-**What is Application Insights:**
+In distributed systems, problems are inevitable:
 
-• Application Performance Monitoring (APM)
-• Collects telemetry from applications
-• Tracks requests, exceptions, dependencies
-• Provides dashboards and analytics
-• Integrates with Azure services
+- slow APIs
+- failed events
+- broken store sync
+- stale dashboards
+- dependency failures
 
-**Key Metrics:**
+Without observability, the team cannot answer:
 
-• **Request Rate**: Requests per second
-• **Response Time**: Average latency
-• **Error Rate**: Percentage of failed requests
-• **Dependency Duration**: Time spent in external calls
-• **Exception Rate**: Unhandled exceptions
-• **Availability**: Uptime percentage
+- what failed
+- where it failed
+- why it failed
+- how many users are affected
+- whether rollback is needed
 
-**Instrumenting .NET Core:**
+---
 
-```csharp
-// In Program.cs
-builder.Services.AddApplicationInsightsTelemetry();
+## 12.2 Three Pillars
 
-// Inject ILogger
-public class PromotionService
-{
-    private readonly ILogger<PromotionService> _logger;
-    
-    public PromotionService(ILogger<PromotionService> logger)
-    {
-        _logger = logger;
-    }
-    
-    public async Task CreatePromotion(CreatePromotionRequest request)
-    {
-        _logger.LogInformation("Creating promotion: {Name}", request.Name);
-        
-        try
-        {
-            // Business logic
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating promotion");
-            throw;
-        }
-    }
-}
-```
+### Logs
 
-## 12.2 Logging Strategy
+Detailed event records.
 
-**Logging Levels:**
+### Metrics
 
-• **Trace**: Detailed diagnostic information
-• **Debug**: Debugging information
-• **Information**: General information
-• **Warning**: Warning messages
-• **Error**: Error messages
-• **Critical**: Critical errors
+Numerical operational signals.
 
-**Structured Logging:**
+### Traces
 
-• Use structured logging (JSON format)
-• Include correlation ID for tracing
-• Include user ID for auditing
-• Include request/response data
-• Use consistent field names
+Request flow across services.
 
-**Log Aggregation:**
+### Together
 
-• Centralize logs in Log Analytics
-• Query logs using KQL (Kusto Query Language)
-• Create alerts based on log patterns
-• Retention: 30 days (configurable)
+They help answer:
 
-**Example KQL Query:**
+- logs → what happened
+- metrics → how often/how badly
+- traces → where in the flow
 
-```kusto
-requests
-| where name == "POST /api/v1/promotions"
-| where duration > 1000
-| summarize count() by bin(timestamp, 1m)
-| render timechart
-```
+---
 
-## 12.3 Distributed Tracing
+## 12.3 Application Insights
 
-**Correlation ID:**
+Use for:
 
-• Unique ID for request across services
-• Passed in X-Correlation-ID header
-• Logged in all services
-• Enables end-to-end tracing
+- request telemetry
+- dependency tracking
+- exceptions
+- distributed tracing
+- dashboards
+- live metrics
 
-**Trace Flow:**
+### Good metrics to track
 
-• Client sends request with Correlation-ID
-• API Gateway adds if missing
-• Promotion Service logs with Correlation-ID
-• Calls Pricing Engine with Correlation-ID
-• Pricing Engine logs with Correlation-ID
-• All logs linked by Correlation-ID
+- request count
+- latency percentiles
+- failed request rate
+- dependency duration
+- exception count
+- availability
 
-**Application Insights Tracing:**
+---
 
-• Automatically tracks dependencies
-• Shows service-to-service calls
-• Shows database queries
-• Shows external API calls
-• Visualizes in Application Map
+## 12.4 Logging Strategy
 
-## 12.4 Alerting & Monitoring
+Use structured logging.
 
-**Alert Rules:**
+### Include fields like
 
-• Error rate > 1% for 5 minutes
-• Response time > 2 seconds for 10 minutes
-• Service Bus queue length > 1000
-• Database CPU > 80% for 10 minutes
-• Disk space < 10% available
+- correlationId
+- userId
+- promotionId
+- storeId
+- eventId
+- operationName
+- environment
+- service name
 
-**Alert Actions:**
+### Log levels
 
-• Send email to team
-• Send SMS to on-call engineer
-• Create incident in PagerDuty
-• Post to Slack
-• Trigger runbook
+- Trace
+- Debug
+- Information
+- Warning
+- Error
+- Critical
 
-**Dashboard:**
+### Best practice
 
-• Real-time metrics
-• Error rate chart
-• Response time chart
-• Service health status
-• Active alerts
-• Recent deployments
+Do not log secrets or sensitive PII.
 
-## 12.5 Health Checks
+---
 
-**Liveness Probe:**
+## 12.5 Distributed Tracing
 
-• Is service running?
-• Endpoint: /health/live
-• Returns 200 if running, 503 if not
-• Kubernetes restarts pod if fails
+Every request should carry a correlation ID or trace context.
 
-**Readiness Probe:**
+### Why
 
-• Is service ready for traffic?
-• Endpoint: /health/ready
-• Checks dependencies (database, cache)
-• Returns 200 if ready, 503 if not
-• Kubernetes removes from load balancer if fails
+A promotion activation may pass through:
 
-**Health Check Implementation:**
+- APIM
+- Promotion Service
+- SQL
+- Outbox publisher
+- Service Bus
+- Store Service
+- Notification Service
+- Analytics Service
+
+Tracing lets you follow that entire chain.
+
+---
+
+## 12.6 Business Metrics to Monitor
+
+Technical metrics are not enough.
+
+### Track business metrics such as:
+
+- number of active promotions
+- promotions pending approval
+- failed activations
+- store sync success rate
+- redemption count by campaign
+- promotion ROI
+- pricing conflicts detected
+- fraud alerts
+
+---
+
+## 12.7 Operational Alerts
+
+Examples:
+
+- API error rate > 1%
+- P95 latency above threshold
+- Service Bus DLQ count > 0
+- queue length growing continuously
+- failed store sync spikes
+- DB CPU high
+- Redis unavailable
+- promotion activation workflow stuck
+
+### Alert actions
+
+- email
+- Teams/Slack
+- PagerDuty
+- incident creation
+- runbook execution
+
+---
+
+## 12.8 Health Checks
+
+### Liveness
+
+Is the process alive?
+
+### Readiness
+
+Can it serve traffic safely?
+
+### Dependency checks
+
+- DB connectivity
+- Redis connectivity
+- broker availability
+- external API health where appropriate
+
+### Caution
+
+Do not make readiness too expensive or fragile.
+
+---
+
+## 12.9 Example .NET Health Check
 
 ```csharp
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<PromotionDbContext>()
-    .AddAzureServiceBusQueue(serviceBusConnectionString, "promotion-queue")
-    .AddRedis(redisConnectionString);
+    .AddSqlServer(connectionString)
+    .AddRedis(redisConnectionString);
 
 app.MapHealthChecks("/health/live");
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
-{
-    Predicate = _ => true,
-    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-});
+app.MapHealthChecks("/health/ready");
 ```
+
+---
+
+## 12.10 Interview-Ready Explanation for Observability
+
+> For observability I would combine structured logs, metrics, and distributed tracing using Application Insights, Azure Monitor, and centralized logging. I would track both technical and business metrics, such as API latency, DLQ growth, and store sync success rate. Correlation IDs are essential so a single promotion workflow can be traced across services, queues, and downstream systems.
 
 ---
 
 # 13. INTERVIEW Q&A
 
-## 13.1 Architecture & Design Questions
-
-**Q1: Explain the microservices architecture for the Promotions Management System.**
-
-A: The system is decomposed into independent microservices:
-• Promotion Service: CRUD and lifecycle management
-• Pricing Engine: Real-time price calculation
-• Store Service: Store data and POS integration
-• Analytics Service: Metrics and reporting
-• Notification Service: Customer and internal notifications
-• Identity Service: Authentication and authorization
-
-Each service has its own database (database per service pattern), communicates via REST APIs and async events through Service Bus. APIM acts as single entry point providing authentication, rate limiting, and routing.
-
-**Q2: What is CQRS and why use it in this system?**
+## 13.1 How to Use This Section
 
-A: CQRS separates read and write models:
-• Write side: Normalized Azure SQL, optimized for consistency
-• Read side: Denormalized Cosmos DB, optimized for query performance
-• Events sync data from write to read model
+These are polished, interview-style answers.  
+When answering in a real interview:
 
-Benefits:
-• Scale read and write independently
-• Different data structures for different use cases
-• Better performance for read-heavy scenarios
-• Easier to understand business operations
-
-**Q3: Explain the Saga pattern for distributed transactions.**
-
-A: Saga coordinates transactions across multiple services:
-• Choreography: Services listen to events and trigger next step
-• Orchestration: Central orchestrator (Logic App) coordinates steps
-
-Example: Activating promotion
-• Promotion Service publishes PromotionActivatingEvent
-• Pricing Engine updates prices, publishes PricesUpdatedEvent
-• Store Service syncs to POS, publishes PromotionDistributedEvent
-• If any step fails, compensation events trigger rollback
-
-**Q4: How do you ensure reliable event publishing?**
-
-A: Use Outbox Pattern:
-• Write to database and OutboxMessages table in single transaction
-• Background worker polls OutboxMessages
-• Publishes to Service Bus
-• Marks as processed
-• Guarantees event published if DB write succeeds
-
-**Q5: What is the difference between synchronous and asynchronous communication?**
-
-A: 
-• Synchronous (REST): Caller waits for response, tight coupling, simpler debugging
-• Asynchronous (Events): Caller doesn't wait, loose coupling, better scalability
-
-Use synchronous for immediate responses (GET requests), asynchronous for side effects (creation events).
-
-## 13.2 Azure Services Questions
-
-**Q6: When would you use Cosmos DB vs Azure SQL?**
-
-A: 
-• Azure SQL: Fixed schema, complex queries, ACID transactions, relational data
-• Cosmos DB: Flexible schema, high read throughput, global distribution, eventual consistency
-
-In Promotions System:
-• SQL: Promotions, campaigns, rules (transactional)
-• Cosmos DB: Product catalog, read models, analytics (high volume)
-
-**Q7: Explain Azure API Management (APIM) and its role.**
-
-A: APIM is API gateway that:
-• Provides single entry point for all APIs
-• Authenticates requests (JWT validation)
-• Rate limits per user/API key
-• Caches responses
-• Transforms requests/responses
-• Routes to backend services
-• Provides developer portal
-• Tracks usage and metrics
-
-**Q8: What are Azure Functions and when to use them?**
-
-A: Serverless compute service:
-• Event-driven (Service Bus, Timer, HTTP)
-• Pay per execution
-• Auto-scale to 0
-• No infrastructure management
-
-Use for:
-• Promotion expiry checker (Timer trigger)
-• Event processing (Service Bus trigger)
-• Report generation (HTTP trigger)
-• Image processing (Blob trigger)
-
-**Q9: How would you use Azure Logic Apps in approval workflow?**
-
-A: Logic App coordinates approval process:
-• Triggered by PromotionSubmittedEvent
-• Determines approval chain based on discount
-• Sends approval email with Approve/Reject buttons
-• Waits for response (with timeout)
-• Calls Promotion API to approve/reject
-• Sends notification of decision
-• Escalates if timeout
-
-**Q10: Explain Key Vault and secret management.**
-
-A: Key Vault stores secrets securely:
-• Connection strings
-• API keys
-• Certificates
-• Encryption keys
-
-Access via Managed Identity (no credentials in code). Rotate every 90 days. Audit access. Separate vaults per environment.
-
-## 13.3 Database & Data Questions
-
-**Q11: Design the database schema for Promotions table.**
-
-A: 
-• Id (GUID, PK)
-• Name (string, max 200)
-• Type (enum: Percentage, Flat, BOGO)
-• Status (enum: Draft, Pending, Approved, Active, Expired)
-• DiscountValue (decimal)
-• DiscountType (enum)
-• StartDate (datetime)
-• EndDate (datetime)
-• MaxRedemptions (int, nullable)
-• CurrentRedemptions (int)
-• CreatedBy (string)
-• CreatedAt (datetime)
-• ModifiedBy (string)
-• ModifiedAt (datetime)
-
-Indexes: Status, CreatedAt, (StoreId, Status)
-
-**Q12: How would you handle eventual consistency in CQRS?**
-
-A:
-• Accept stale data for non-critical queries
-• Include version/timestamp in read model
-• Notify client when data updated
-• Use write model for critical operations
-• Implement retry logic for consistency checks
-
-**Q13: Explain partitioning strategy for Cosmos DB.**
-
-A: Choose partition key carefully:
-• Product Catalog: /categoryId (even distribution)
-• Promotion Read Model: /storeId (query by store)
-• Analytics Events: /eventDate (time-based, auto-expire)
-• Event Store: /aggregateId (all events for promotion together)
-
-Avoid hot partitions (one partition gets all traffic).
-
-**Q14: How would you backup and recover data?**
-
-A:
-• Azure SQL: Auto backups, point-in-time restore (35 days)
-• Cosmos DB: Auto backup every 4 hours (30 days)
-• Geo-replication for disaster recovery
-• RTO < 5 minutes, RPO < 1 minute
-
-**Q15: Design a data warehouse for analytics.**
-
-A: Use Azure Synapse:
-• Fact table: Redemptions (promotionId, storeId, customerId, amount, date)
-• Dimension tables: Promotions, Stores, Customers, Dates
-• Aggregate tables: Daily sales by promotion, ROI by promotion
-• Refresh daily via Data Factory
-• Query with SQL or Power BI
-
-## 13.4 API & Integration Questions
-
-**Q16: Design the REST API for creating a promotion.**
-
-A:
-```
-POST /api/v1/promotions
-Content-Type: application/json
-
-{
-  "name": "Summer Sale",
-  "description": "20% off all items",
-  "type": "PercentageDiscount",
-  "discountValue": 20.0,
-  "startDate": "2024-06-01T00:00:00Z",
-  "endDate": "2024-08-31T23:59:59Z",
-  "maxRedemptions": 10000,
-  "storeIds": ["S001", "S002"]
-}
-
-Response: 201 Created
-{
-  "data": {
-    "id": "promo-123",
-    "status": "Draft",
-    "createdAt": "2024-06-15T10:30:00Z"
-  }
-}
-```
-
-**Q17: How would you implement pagination in API?**
-
-A:
-```
-GET /api/v1/promotions?page=1&pageSize=20&sortBy=createdAt&sortOrder=desc
-
-Response:
-{
-  "data": [...],
-  "pagination": {
-    "page": 1,
-    "pageSize": 20,
-    "totalCount": 150,
-    "totalPages": 8,
-    "hasNext": true
-  }
-}
-```
-
-**Q18: Design error handling for APIs.**
-
-A:
-• Validation errors: 400 Bad Request with field details
-• Authentication errors: 401 Unauthorized
-• Authorization errors: 403 Forbidden
-• Not found: 404 Not Found
-• Business rule violations: 422 Unprocessable Entity
-• Rate limited: 429 Too Many Requests
-• Server errors: 500 Internal Server Error
-
-Include error code, message, details, and traceId.
-
-**Q19: How would you version APIs?**
-
-A: URL path versioning:
-• /api/v1/promotions (current version)
-• /api/v2/promotions (new version)
-
-Support v1 for 6 months after v2 release. Send Sunset header indicating deprecation date. Provide migration guide.
-
-**Q20: Explain API security best practices.**
-
-A:
-• Use HTTPS/TLS
-• JWT tokens in Authorization header
-• Validate all inputs
-• Rate limiting per user/API key
-• CORS for trusted origins only
-• Secrets in Key Vault
-• Audit logging
-• SQL injection prevention (parameterized queries)
-
-## 13.5 DevOps & Deployment Questions
-
-**Q21: Design a CI/CD pipeline for this system.**
-
-A:
-• Trigger: Push to main branch
-• Build: Compile, run tests, build Docker image
-• Push: Push image to ACR
-• Deploy Dev: Deploy to dev AKS cluster
-• Test: Run integration tests
-• Deploy Staging: Deploy to staging
-• Approval: Manual approval for prod
-• Deploy Prod: Blue-green deployment
-• Monitor: Health checks, rollback if needed
-
-**Q22: Explain blue-green deployment.**
-
-A:
-• Two identical production environments (Blue, Green)
-• Currently serving: Blue
-• Deploy new version to Green
-• Test Green thoroughly
-• Switch traffic from Blue to Green
-• Keep Blue as rollback option
-• Benefits: Zero downtime, easy rollback
-• Disadvantage: Double infrastructure cost
-
-**Q23: How would you implement canary deployment?**
-
-A:
-• Deploy new version to 5% of servers
-• Monitor error rate, latency
-• Gradually increase to 10%, 25%, 50%, 100%
-• Rollback if error rate > 1%
-• Benefits: Low risk, detect issues early
-• Disadvantage: Slower deployment
-
-**Q24: Explain Kubernetes deployment manifest.**
-
-A:
-• Deployment: Manages pods, ensures desired state
-• Service: Exposes pods (ClusterIP, NodePort, LoadBalancer)
-• Ingress: Routes external traffic
-• ConfigMap: Configuration data
-• Secret: Sensitive data
-• HPA: Auto-scaling based on metrics
-• NetworkPolicy: Restrict traffic
-
-**Q25: How would you monitor a Kubernetes cluster?**
-
-A:
-• Prometheus: Metrics collection
-• Grafana: Visualization
-• Application Insights: APM
-• Liveness/Readiness probes: Pod health
-• Resource requests/limits: Prevent resource starvation
-• Alerts: Error rate, latency, CPU, memory
-
-## 13.6 Security Questions
-
-**Q26: Explain OAuth 2.0 flow for authentication.**
-
-A:
-• User clicks "Login with Azure AD"
-• Redirected to Azure AD login
-• User enters credentials
-• Azure AD returns authorization code
-• Application exchanges code for token
-• Token used in Authorization header for API calls
-• Token expires, refresh token gets new token
-
-**Q27: How would you implement role-based access control (RBAC)?**
-
-A:
-• Define roles: Admin, Manager, Viewer
-• Assign permissions to roles
-• Assign users to roles
-• Check role in API: [Authorize(Roles = "Admin")]
-• Check permission in code: User.HasClaim("permission", "promotions:approve")
-
-**Q28: Explain mTLS (mutual TLS) for service-to-service communication.**
-
-A:
-• Both client and server have certificates
-• Client presents certificate to server
-• Server verifies client certificate
-• Server presents certificate to client
-• Client verifies server certificate
-• Encrypted communication established
-• Prevents unauthorized services from calling API
-
-**Q29: How would you prevent SQL injection?**
-
-A:
-• Use parameterized queries (Entity Framework Core)
-• Never concatenate user input into SQL
-• Validate and sanitize input
-• Use stored procedures with parameters
-• Principle of least privilege (limited DB permissions)
-
-**Q30: Design a secrets rotation strategy.**
-
-A:
-• Rotate every 90 days
-• Use Key Vault rotation policies
-• No downtime during rotation
-• Old and new secrets valid during transition
-• Audit who accessed secrets
-• Alert on failed rotation
-
-## 13.7 Retail Domain Questions
-
-**Q31: Explain how promotions reach POS terminals.**
-
-A:
-• Promotion activated in cloud
-• Event published to Service Bus
-• Store Service listens
-• Transforms to POS format
-• Calls POS API for each store
-• POS applies discount at checkout
-• Redemption recorded and synced back
-
-**Q32: How would you track promotion redemptions?**
-
-A:
-• POS records redemption locally
-• Syncs to cloud at end of day
-• Analytics Service processes
-• Updates redemption count
-• Checks if max reached
-• Calculates ROI
-• Generates reports
-
-**Q33: Design a promotion conflict resolution strategy.**
-
-A:
-• Prevent overlapping promotions on same product
-• If multiple apply, use highest discount
-• Exclude certain products from promotions
-• Limit promotions per customer
-• Validate in Pricing Engine
-
-**Q34: Explain inventory considerations for promotions.**
-
-A:
-• Don't promote out-of-stock items
-• Check stock before applying promotion
-• Reserve inventory for high-demand promotions
-• Alert when stock low
-• Trigger replenishment orders
-
-**Q35: How would you calculate promotion ROI?**
-
-A:
-• Revenue = Redemptions × Discount Amount
-• Cost = Discount Amount × Redemptions
-• Profit = (Revenue - Cost) - Promotion Setup Cost
-• ROI = (Profit / Cost) × 100%
-• Track margin impact
-
-## 13.8 Performance & Optimization Questions
-
-**Q36: How would you optimize API response time?**
-
-A:
-• Implement caching (Redis)
-• Use CQRS (optimize read model)
-• Pagination (don't return all data)
-• Database indexing
-• Async operations
-• CDN for static content
-• Connection pooling
-• Query optimization
-
-**Q37: Explain caching strategy for promotions.**
-
-A:
-• Cache active promotions (1-hour TTL)
-• Cache product prices (5-minute TTL)
-• Cache store information
-• Invalidate on update
-• Use cache-aside pattern
-• Monitor cache hit rate
-
-**Q38: How would you handle high-volume promotion events?**
-
-A:
-• Use Service Bus with partitions
-• Increase throughput (RU/s)
-• Use Cosmos DB for high writes
-• Batch processing
-• Async processing
-• Auto-scaling
-
-**Q39: Design a load testing strategy.**
-
-A:
-• Load test with 10x expected traffic
-• Identify bottlenecks
-• Test failure scenarios
-• Test auto-scaling
-• Test database limits
-• Monitor metrics during test
-
-**Q40: How would you optimize database queries?**
-
-A:
-• Add indexes on frequently queried columns
-• Avoid SELECT * (specify columns)
-• Use joins efficiently
-• Partition large tables
-• Archive old data
-• Use query execution plans
-• Monitor slow queries
-
-## 13.9 Troubleshooting Questions
-
-**Q41: A promotion is not appearing in POS. How would you debug?**
-
-A:
-• Check if promotion is Active
-• Check if within valid date range
-• Check Service Bus messages (published?)
-• Check Store Service logs
-• Check POS sync status
-• Check network connectivity to POS
-• Verify POS API response
-• Check POS terminal logs
-
-**Q42: API response time is slow. How would you investigate?**
-
-A:
-• Check Application Insights metrics
-• Check database query performance
-• Check external API calls
-• Check cache hit rate
-• Check CPU/memory usage
-• Check network latency
-• Load test to identify bottleneck
-• Profile code
-
-**Q43: Promotion redemption count is incorrect. How would you fix?**
-
-A:
-• Check POS sync logs
-• Verify redemption data in database
-• Check for duplicate processing
-• Verify idempotency implementation
-• Audit trail of changes
-• Recalculate from raw data
-• Notify affected parties
-
-**Q44: Service Bus messages stuck in DLQ. How would you resolve?**
-
-A:
-• Investigate cause of failure
-• Fix underlying issue
-• Manually review message
-• Move back to main queue
-• Reprocess
-• Monitor for recurrence
-
-**Q45: Database connection pool exhausted. How would you fix?**
-
-A:
-• Increase max connections
-• Reduce connection timeout
-• Close connections properly
-• Use connection pooling
-• Reduce concurrent requests
-• Scale database
-• Optimize queries
-
-## 13.10 System Design Questions
-
-**Q46: Design a high-availability system for Promotions.**
-
-A:
-• Multi-region deployment (active-active)
-• Database geo-replication
-• Service Bus geo-replication
-• Auto-failover
-• Load balancer across regions
-• RTO < 5 minutes, RPO < 1 minute
-• Health checks and monitoring
-• Automated rollback
-
-**Q47: Design a disaster recovery plan.**
-
-A:
-• RTO: 4 hours (acceptable downtime)
-• RPO: 1 hour (data loss acceptable)
-• Backup to secondary region
-• Test recovery quarterly
-• Document procedures
-• Assign responsibilities
-• Communication plan
-• Runbooks for common failures
-
-**Q48: How would you scale the system for 10x traffic?**
-
-A:
-• Horizontal scaling (more pods/instances)
-• Database scaling (more RU/s, read replicas)
-• Caching layer
-• CDN for static content
-• Async processing
-• Message batching
-• Load testing to identify bottlenecks
-
-**Q49: Design a multi-tenant system for multiple retailers.**
-
-A:
-• Separate databases per tenant
-• Tenant ID in all queries
-• Row-level security (RLS)
-• Separate Kubernetes namespaces
-• Separate API keys per tenant
-• Billing per tenant
-• Audit trail per tenant
-
-**Q50: How would you migrate from monolith to microservices?**
-
-A:
-• Strangler pattern (gradually replace)
-• Identify service boundaries
-• Extract services one by one
-• Implement APIs for communication
-• Migrate data
-• Run both in parallel
-• Switch traffic gradually
-• Decommission monolith
-
-## 13.11 Advanced Questions
-
-**Q51: Explain event sourcing vs event streaming.**
-
-A:
-• Event Sourcing: Store all changes as events, rebuild state
-• Event Streaming: Stream events in real-time to consumers
-• Can use both: Event sourcing for audit, event streaming for real-time
-
-**Q52: How would you implement CQRS with event sourcing?**
-
-A:
-• Write side: Store events in event store
-• Read side: Project events to read model
-• Separate databases
-• Eventual consistency
-• Replay events to rebuild state
-
-**Q53: Design a feature flag system.**
-
-A:
-• Store flags in configuration
-• Check flag before executing feature
-• Toggle without deployment
-• Gradual rollout
-• A/B testing
-• Rollback without deployment
-
-**Q54: How would you implement distributed tracing?**
-
-A:
-• Generate correlation ID per request
-• Pass through all services
-• Log with correlation ID
-• Aggregate logs by correlation ID
-• Visualize in Application Insights
-• Identify slow services
-
-**Q55: Explain circuit breaker vs bulkhead pattern.**
-
-A:
-• Circuit Breaker: Fail fast when service unavailable
-• Bulkhead: Isolate resources to prevent cascade
-• Use together: Circuit breaker detects failure, bulkhead isolates impact
-
-**Q56: How would you implement idempotency?**
-
-A:
-• Generate unique request ID
-• Store processed request IDs
-• Check if already processed
-• Return cached response if duplicate
-• Safe to retry without side effects
-
-**Q57: Design a rate limiting strategy.**
-
-A:
-• Per user: 1000 requests/hour
-• Per API key: 10000 requests/hour
-• Per IP: 100 requests/minute
-• Implement in APIM
-• Return 429 Too Many Requests
-• Retry-After header
-
-**Q58: How would you implement request validation?**
-
-A:
-• Validate format (JSON schema)
-• Validate required fields
-• Validate field types
-• Validate business rules
-• Return 400 with details
-• Use FluentValidation in .NET
-
-**Q59: Explain the difference between authentication and authorization.**
-
-A:
-• Authentication: Who are you? (login)
-• Authorization: What can you do? (permissions)
-• Example: Login with password (auth), check if admin (authz)
-
-**Q60: How would you implement audit logging?**
-
-A:
-• Log all changes (create, update, delete)
-• Include user ID, timestamp, old values, new values
-• Store in immutable table
-• Retention: 7 years
-• Query for compliance
-• Alert on suspicious activity
-
-## 13.12 Scenario-Based Questions
-
-**Q61: A promotion is accidentally activated for wrong stores. How would you handle?**
-
-A:
-• Immediately pause promotion
-• Identify affected stores
-• Notify POS terminals to remove
-• Compensate affected customers
-• Update audit log
-• Investigate root cause
-• Implement preventive measures
-
-**Q62: Service Bus is down. How would you handle?**
-
-A:
-• Fallback to synchronous API calls
-• Queue messages locally
-• Retry when Service Bus recovers
-• Alert operations team
-• Check Service Bus status
-• Failover to backup region
-• Investigate root cause
-
-**Q63: Database is running out of space. How would you handle?**
-
-A:
-• Archive old data
-• Delete unnecessary data
-• Increase storage
-• Optimize indexes
-• Partition tables
-• Scale database
-• Monitor growth
-
-**Q64: Promotion approval is taking too long. How would you optimize?**
-
-A:
-• Reduce approval levels
-• Parallel approvals instead of sequential
-• Auto-approve low-risk promotions
-• Set SLA for approvals
-• Escalation if timeout
-• Notification reminders
-
-**Q65: Pricing calculation is incorrect. How would you debug?**
-
-A:
-• Check promotion rules
-• Check applicable products
-• Check discount calculation
-• Check tax calculation
-• Check rounding
-• Unit test pricing logic
-• Integration test with real data
-
-## 13.13 Code & Implementation Questions
-
-**Q66: Write a simple promotion validation function.**
-
-A:
-```csharp
-public class PromotionValidator
-{
-    public Result Validate(Promotion promotion)
-    {
-        var errors = new List<string>();
-        
-        if (string.IsNullOrEmpty(promotion.Name))
-            errors.Add("Name is required");
-        
-        if (promotion.DiscountValue <= 0)
-            errors.Add("Discount must be positive");
-        
-        if (promotion.DiscountType == DiscountType.Percentage && 
-            promotion.DiscountValue > 100)
-            errors.Add("Percentage cannot exceed 100");
-        
-        if (promotion.EndDate <= promotion.StartDate)
-            errors.Add("End date must be after start date");
-        
-        return errors.Any() 
-            ? Result.Failure(errors) 
-            : Result.Success();
-    }
-}
-```
-
-**Q67: Write a circuit breaker implementation.**
-
-A:
-```csharp
-public class CircuitBreaker
-{
-    private CircuitState _state = CircuitState.Closed;
-    private int _failureCount = 0;
-    private DateTime _lastFailureTime;
-    private const int FailureThreshold = 5;
-    private const int TimeoutSeconds = 30;
-    
-    public async Task<T> ExecuteAsync<T>(Func<Task<T>> operation)
-    {
-        if (_state == CircuitState.Open)
-        {
-            if (DateTime.UtcNow - _lastFailureTime > TimeSpan.FromSeconds(TimeoutSeconds))
-                _state = CircuitState.HalfOpen;
-            else
-                throw new CircuitBreakerOpenException();
-        }
-        
-        try
-        {
-            var result = await operation();
-            OnSuccess();
-            return result;
-        }
-        catch (Exception ex)
-        {
-            OnFailure();
-            throw;
-        }
-    }
-    
-    private void OnSuccess()
-    {
-        _failureCount = 0;
-        _state = CircuitState.Closed;
-    }
-    
-    private void OnFailure()
-    {
-        _failureCount++;
-        _lastFailureTime = DateTime.UtcNow;
-        if (_failureCount >= FailureThreshold)
-            _state = CircuitState.Open;
-    }
-}
-```
-
-**Q68: Write a caching decorator.**
-
-A:
-```csharp
-public class CachedPromotionRepository : IPromotionRepository
-{
-    private readonly IPromotionRepository _inner;
-    private readonly IDistributedCache _cache;
-    
-    public async Task<Promotion> GetByIdAsync(string id)
-    {
-        var cacheKey = $"promotion:{id}";
-        var cached = await _cache.GetStringAsync(cacheKey);
-        
-        if (cached != null)
-            return JsonSerializer.Deserialize<Promotion>(cached);
-        
-        var promotion = await _inner.GetByIdAsync(id);
-        
-        if (promotion != null)
-            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(promotion),
-                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1) });
-        
-        return promotion;
-    }
-}
-```
-
-**Q69: Write a request correlation middleware.**
-
-A:
-```csharp
-public class CorrelationIdMiddleware
-{
-    private readonly RequestDelegate _next;
-    
-    public CorrelationIdMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-    
-    public async Task InvokeAsync(HttpContext context, ILogger<CorrelationIdMiddleware> logger)
-    {
-        var correlationId = context.Request.Headers.TryGetValue("X-Correlation-ID", out var value)
-            ? value.ToString()
-            : Guid.NewGuid().ToString();
-        
-        context.Items["CorrelationId"] = correlationId;
-        context.Response.Headers.Add("X-Correlation-ID", correlationId);
-        
-        using (logger.BeginScope(new { CorrelationId = correlationId }))
-        {
-            await _next(context);
-        }
-    }
-}
-```
-
-**Q70: Write a retry policy with exponential backoff.**
-
-A:
-```csharp
-public class RetryPolicy
-{
-    public async Task<T> ExecuteAsync<T>(Func<Task<T>> operation, int maxRetries = 3)
-    {
-        int retryCount = 0;
-        
-        while (true)
-        {
-            try
-            {
-                return await operation();
-            }
-            catch (Exception ex) when (retryCount < maxRetries)
-            {
-                retryCount++;
-                var delay = TimeSpan.FromSeconds(Math.Pow(2, retryCount));
-                await Task.Delay(delay);
-            }
-        }
-    }
-}
-```
-
-## 13.14 Communication & Soft Skills
-
-**Q71: How would you explain microservices to a non-technical stakeholder?**
-
-A: "Instead of one big application, we break it into smaller, independent services. Each service handles one responsibility (like managing promotions, calculating prices, etc.). They communicate with each other like departments in a company. This makes it easier to change one service without affecting others, and we can scale services independently based on demand."
-
-**Q72: How would you communicate a critical production issue to management?**
-
-A: "We have an issue affecting X% of users. The root cause is [technical explanation]. Impact: [business impact]. We're taking [immediate action]. ETA to resolution: [time]. We'll provide updates every [interval]."
-
-**Q73: How would you handle disagreement with a team member on architecture?**
-
-A: "I understand your perspective. Let's discuss the trade-offs: your approach has benefits [benefits] but drawbacks [drawbacks]. My approach has benefits [benefits] but drawbacks [drawbacks]. Let's evaluate against our requirements and constraints. If we still disagree, let's involve the tech lead."
-
-**Q74: How would you document a complex system?**
-
-A: "Create architecture diagrams, document each service's responsibility, API documentation, deployment procedures, runbooks for common issues, decision logs explaining why we chose certain technologies."
-
-**Q75: How would you mentor a junior developer?**
-
-A: "Pair programming, code reviews, explain design decisions, encourage questions, assign progressively complex tasks, provide feedback, help with problem-solving."
+- start with the main point
+- explain the reasoning
+- mention trade-offs
+- finish with a concrete example
+
+---
+
+## Q1: Explain the architecture of the Promotions Management System.
+
+**Answer:**
+
+The system is designed as a set of domain-oriented microservices behind Azure API Management. The Promotion Service owns the core lifecycle and transactional state of promotions, including creation, approval, activation, and cancellation. Supporting services such as Pricing, Store Sync, Analytics, and Notifications react to business events through Azure Service Bus.
+
+For persistence, I would use Azure SQL for the write model because promotion workflows require strong consistency and auditability. For read-heavy queries and dashboards, I would use Cosmos DB and Redis to improve query performance. The services run on AKS for orchestration, and Application Insights plus Azure Monitor provide observability.
+
+This design supports separation of concerns, independent scaling, and operational resilience.
+
+---
+
+## Q2: Why use microservices instead of a monolith?
+
+**Answer:**
+
+I would use microservices only if the domain complexity justifies them. In a promotions platform, capabilities such as promotion management, pricing, store sync, analytics, and approvals evolve differently and often scale differently. That makes them good candidates for service boundaries.
+
+The main benefits are independent deployment, team autonomy, fault isolation, and targeted scaling. The downside is distributed systems complexity, especially around consistency, tracing, and operations. So I would choose microservices when the business workflow is large enough and the team is mature enough to handle that complexity.
+
+---
+
+## Q3: Why use Azure SQL for promotions data?
+
+**Answer:**
+
+Azure SQL is a strong fit for the promotion write model because promotion lifecycle operations are transactional and business-critical. For example, creating or approving a promotion often requires validation, audit logging, and reliable event generation. Relational modeling also helps with approval history, campaign associations, and constraints.
+
+In short, Azure SQL gives strong consistency, mature querying, indexing, backup, and compliance features, which are all important for core promotion workflows.
+
+---
+
+## Q4: Why use Cosmos DB in the same system?
+
+**Answer:**
+
+Cosmos DB is useful for high-scale denormalized read models. The same promotion data may need to be queried by store, region, time window, or dashboard view. Those query patterns are often better served by pre-shaped JSON projections than by complex joins on the transactional database.
+
+So I would use Azure SQL for write correctness and Cosmos DB for high-throughput low-latency reads.
+
+---
+
+## Q5: Explain CQRS in this system.
+
+**Answer:**
+
+CQRS separates the write model from the read model. In this system, the write side is responsible for business correctness: validation, lifecycle transitions, approvals, and event generation. That fits well in Azure SQL. The read side is optimized for dashboards, search, listing active promotions, and store-specific queries. That can be served from Cosmos DB or a specialized projection store.
+
+The main benefit is better performance and clearer responsibility separation. The main trade-off is eventual consistency and added architectural complexity.
+
+---
+
+## Q6: Explain the Outbox pattern.
+
+**Answer:**
+
+The Outbox pattern is used to ensure reliable event publishing without requiring a distributed transaction. When the Promotion Service updates business data, it writes the corresponding integration event into an outbox table in the same database transaction. A background process later reads the outbox rows and publishes them to Azure Service Bus.
+
+This ensures that if the database write succeeds, the event will eventually be published, even if the broker is temporarily unavailable at the time of the request.
+
+---
+
+## Q7: What is the Saga pattern and where would you use it?
+
+**Answer:**
+
+The Saga pattern is used for multi-step workflows across services where a single ACID transaction is not practical. In this system, promotion activation may involve updating pricing projections, distributing to stores, sending notifications, and updating analytics. Those actions happen across multiple services.
+
+A saga coordinates those steps and defines compensation behavior if one step fails. I would use choreography for simpler event-driven reactions and orchestration for more complex workflows such as approval chains or activation processes with multiple dependencies.
+
+---
+
+## Q8: How would you handle eventual consistency?
+
+**Answer:**
+
+I would accept eventual consistency on non-critical read paths such as dashboards and listing projections, but I would keep strong consistency for write paths like approval and activation. To make eventual consistency manageable, I would include timestamps and versions in projections, make consumers idempotent, and use the write model for critical confirmation flows if needed.
+
+The key is to choose where consistency really matters and not force every workflow into the same consistency level.
+
+---
+
+## Q9: How would you secure the system?
+
+**Answer:**
+
+I would secure it in layers. At the edge I would use WAF, HTTPS, and APIM policies. For authentication I would use OAuth 2.0/OIDC with JWT tokens. For authorization I would use RBAC or policy-based rules. Secrets would be stored in Key Vault and accessed through managed identity. Data would be encrypted in transit and at rest. For internal communication I would use private networking and least privilege access. Because promotions can directly affect revenue, I would also implement audit logging, approval workflows, and fraud-prevention controls.
+
+---
+
+## Q10: How do promotions reach POS systems?
+
+**Answer:**
+
+Once a promotion is approved and activated, the Promotion Service publishes an event such as `PromotionActivated`. The Store or Integration Service consumes that event, transforms the promotion into the format required by the POS or store system, and distributes it through an API or file-based sync. The POS then loads the promotion locally and applies it during checkout if the criteria match.
+
+This design decouples central promotion management from store distribution and allows retries, monitoring, and reconciliation in case stores are offline.
+
+---
+
+## Q11: How would you prevent duplicate message processing?
+
+**Answer:**
+
+I would assume at-least-once delivery and make every consumer idempotent. That usually means including a unique event ID, storing processed event IDs, and ensuring side effects are replay-safe. For projections, I may use upserts keyed by aggregate/version. For notifications or external calls, I would explicitly check whether the event was already handled.
+
+---
+
+## Q12: How would you deploy the platform safely?
+
+**Answer:**
+
+I would use CI/CD with automated build, test, and container packaging. For production deployment, I would choose rolling, canary, or blue-green depending on release risk. I would also use health probes, smoke tests, and post-deployment monitoring of latency, errors, and queue health. Every release would have rollback criteria and rollback steps defined in advance.
+
+---
+
+## Q13: How would you troubleshoot a promotion not appearing in POS?
+
+**Answer:**
+
+I would trace the lifecycle end to end. First I would verify the promotion status is actually Active and valid for the target stores and time window. Then I would check whether the activation event was published successfully, whether the store distribution consumer processed it, whether any retries or DLQ entries exist, and whether the POS endpoint acknowledged the update. I would also check store sync logs, correlation IDs, and operational dashboards to determine where the flow broke.
+
+---
+
+## Q14: What trade-offs would you explain in this design?
+
+**Answer:**
+
+The biggest trade-off is between scalability/flexibility and complexity. Microservices, CQRS, event-driven design, and multiple data stores all improve independence and performance, but they introduce operational overhead, eventual consistency, and harder debugging. So I would justify each pattern based on workload and business need, not just because it sounds modern.
+
+---
+
+## Q15: How would you answer “Why this architecture?”
+
+**Answer:**
+
+Because the domain has multiple business capabilities with different workloads and operational needs. Promotion authoring requires strong consistency and auditability, pricing needs fast and deterministic logic, store sync is asynchronous and integration-heavy, analytics is read-heavy, and approvals are workflow-driven. A combination of Azure SQL, Service Bus, APIM, AKS, and supporting Azure services fits those needs well while allowing each part of the system to evolve independently.
 
 ---
 
 # 14. SYSTEM DESIGN SCENARIOS
 
-## 14.1 Scenario 1: Black Friday Promotion Surge
+## 14.1 Scenario: Black Friday Surge
 
-**Problem:**
+### Problem
 
-• Expected 100x traffic increase on Black Friday
-• Promotions must be applied correctly at checkout
-• System must handle millions of redemptions
-• No downtime allowed
+Traffic increases 50x or 100x. Promotions must remain accurate and low-latency.
 
-**Solution:**
+### Approach
 
-• **Pre-scaling**: Scale AKS nodes to 50+ before event
-• **Database**: Increase Cosmos DB RU/s to 100,000+
-• **Caching**: Pre-load active promotions in Redis
-• **Async Processing**: Queue redemptions, process asynchronously
-• **Circuit Breaker**: Fail gracefully if dependencies slow
-• **Monitoring**: Real-time dashboards, alert thresholds
-• **Load Testing**: Test with 10x expected traffic beforehand
-• **Rollback Plan**: Quick rollback if issues detected
+- pre-scale AKS nodes and pods
+- pre-warm caches
+- increase Cosmos throughput / capacity planning
+- review SQL bottlenecks
+- batch or queue non-critical downstream work
+- tighten observability and alerting
+- run load tests before event
 
-**Key Metrics:**
+### Key metrics
 
-• P99 latency < 500ms
-• Error rate < 0.1%
-• Throughput: 100,000 requests/second
+- API P95/P99 latency
+- queue depth
+- cache hit ratio
+- DB resource usage
+- failed checkout/promotion rate
 
-## 14.2 Scenario 2: Promotion Overlap Conflict
+---
 
-**Problem:**
+## 14.2 Scenario: Promotion Overlap Conflict
 
-• Two promotions on same product, conflicting rules
-• Need to determine which discount applies
-• Customer expects maximum discount
+### Problem
 
-**Solution:**
+Two active promotions apply to same SKU/cart.
 
-• **Conflict Detection**: Check for overlaps before activation
-• **Resolution Rules**: Define priority (highest discount wins)
-• **Exclusions**: Explicitly exclude products from promotions
-• **Validation**: Pricing Engine validates before applying
-• **Compensation**: If wrong discount applied, refund difference
+### Approach
 
-**Implementation:**
+- centralize resolution in Pricing Engine
+- define explicit precedence rules
+- support non-stackable flags
+- log decision for audit
+- reject invalid overlap at approval or activation time when possible
 
-• Query database for overlapping promotions
-• Compare discount amounts
-• Apply highest discount
-• Log decision for audit
-• Alert if unexpected conflicts
+---
 
-## 14.3 Scenario 3: POS Out of Sync
+## 14.3 Scenario: Store Offline During Promotion Activation
 
-**Problem:**
+### Problem
 
-• POS terminal offline for 2 hours
-• Promotions not synced
-• Customers can't get discounts
+Store does not receive active promotion update.
 
-**Solution:**
+### Approach
 
-• **Retry Logic**: Automatically retry sync every 5 minutes
-• **Queue**: Store sync requests in queue
-• **Fallback**: POS uses cached promotions
-• **Reconciliation**: When POS comes back online, sync all pending
-• **Notification**: Alert store manager of sync failure
+- queue retryable distribution tasks
+- keep delivery status by store
+- alert operations after threshold
+- reconcile when store reconnects
+- maintain versioned sync state
 
-**Implementation:**
+---
 
-• Store Service publishes PromotionSyncEvent
-• If POS unreachable, add to retry queue
-• Background job retries with exponential backoff
-• When POS comes online, process queue
-• Verify sync success
+## 14.4 Scenario: Messaging Failure
 
-## 14.4 Scenario 4: Database Failover
+### Problem
 
-**Problem:**
+Service Bus unavailable or consumer failing.
 
-• Primary database fails
-• Need to failover to secondary region
-• Minimize data loss and downtime
+### Approach
 
-**Solution:**
+- Outbox ensures publication durability
+- consumers retry transient errors
+- DLQ poison messages
+- alert on queue backlog and DLQ growth
+- recover and replay safely
 
-• **Geo-Replication**: Secondary database in different region
-• **Automatic Failover**: Failover automatically on primary failure
-• **RTO < 5 minutes**: Acceptable downtime
-• **RPO < 1 minute**: Acceptable data loss
-• **Connection String**: Update to secondary region
-• **Testing**: Quarterly failover drills
+---
 
-**Implementation:**
+## 14.5 Scenario: Fraudulent Redemption Abuse
 
-• Azure SQL geo-replication enabled
-• Automatic failover group configured
-• Application uses failover group endpoint
-• Monitor replication lag
-• Alert on failover
+### Problem
 
-## 14.5 Scenario 5: Malicious Promotion Redemption
+Customer repeatedly exploits a promotion.
 
-**Problem:**
+### Approach
 
-• Customer exploits promotion (redeems multiple times)
-• Fraudulent activity detected
-• Need to prevent and investigate
+- per-customer redemption limits
+- require account/loyalty binding for certain promotions
+- anomaly detection on unusual redemption patterns
+- audit all redemption events
+- manual review and compensation workflows
 
-**Solution:**
+---
 
-• **Validation**: Check max redemptions per customer
-• **Detection**: Monitor unusual patterns
-• **Prevention**: Require login for redemption
-• **Investigation**: Audit trail of all redemptions
-• **Action**: Reverse fraudulent transactions, ban customer
+## 14.6 Scenario: Slow API Performance
 
-**Implementation:**
+### Problem
 
-• Store redemption per customer
-• Check limit before applying discount
-• Log all redemptions with customer ID
-• Alert on suspicious patterns
-• Manual review for high-value fraud
+Promotion list endpoint degrades from 100ms to 700ms.
 
-## 14.6 Scenario 6: Service Dependency Chain Failure
+### Investigation
 
-**Problem:**
+- check Application Insights traces
+- identify slow dependency or DB query
+- inspect cache hit ratio
+- compare deployment changes
+- review indexes and query plans
+- examine resource contention in AKS
 
-• Pricing Engine depends on Product Service
-• Product Service is down
-• Pricing Engine can't calculate prices
+### Response
 
-**Solution:**
+- mitigate with cache/index/query fix
+- scale if needed
+- rollback if tied to recent release
 
-• **Circuit Breaker**: Detect Product Service failure
-• **Fallback**: Use cached product data
-• **Degraded Mode**: Apply promotion without product details
-• **Retry**: Retry when service recovers
-• **Notification**: Alert team of dependency failure
+---
 
-**Implementation:**
+## 14.7 Scenario: Approval Bottleneck
 
-• Implement circuit breaker for Product Service calls
-• Cache product data locally
-• If circuit open, use cache
-• Retry with exponential backoff
-• Alert on circuit open
+### Problem
 
-## 14.7 Scenario 7: Promotion Approval Bottleneck
+Too many promotions waiting for approval.
 
-**Problem:**
+### Approach
 
-• Approval queue has 1000+ pending promotions
-• Approvers can't keep up
-• Promotions delayed
+- define auto-approval rules for low-risk promotions
+- enable parallel approvals where business permits
+- add SLA reminders and escalation
+- improve approval dashboard visibility
+- analyze approval workload by team/region
 
-**Solution:**
+---
 
-• **Auto-Approval**: Auto-approve low-risk promotions
-• **Parallel Approvals**: Multiple approvers simultaneously
-• **SLA**: Set deadline for approvals
-• **Escalation**: Escalate if timeout
-• **Notification**: Remind approvers of pending
+## 14.8 Scenario: Multi-Region Expansion
 
-**Implementation:**
+### Problem
 
-• Define low-risk criteria (discount < 10%, < 5 stores)
-• Auto-approve if criteria met
-• Send parallel approval requests
-• Set 24-hour SLA
-• Escalate to manager if timeout
-• Daily reminder email
+Retailer expands to more geographies.
 
-## 14.8 Scenario 8: Real-Time Analytics Update
+### Approach
 
-**Problem:**
+- regional AKS clusters or carefully planned global deployment
+- APIM / Front Door routing
+- region-aware data strategy
+- compliance-aware data residency
+- failover planning
+- latency-aware cache/projection strategy
 
-• Dashboard shows stale data
-• Customers want real-time redemption metrics
-• Current batch processing too slow
+---
 
-**Solution:**
+## 14.9 Scenario: Database Failover
 
-• **Event Streaming**: Stream redemption events in real-time
-• **Materialized Views**: Update views as events arrive
-• **WebSocket**: Push updates to client
-• **Caching**: Cache aggregates in Redis
-• **Batch + Real-time**: Combine for accuracy
+### Problem
 
-**Implementation:**
+Primary database unavailable.
 
-• Publish redemption events to Service Bus
-• Analytics Service subscribes
-• Update Cosmos DB read model in real-time
-• Aggregate in Redis (1-minute windows)
-• Push updates via SignalR to dashboard
+### Approach
 
-## 14.9 Scenario 9: Multi-Region Deployment
+- use SQL failover groups
+- define RTO/RPO
+- test failover drills
+- ensure app uses failover-aware connection strategy
+- observe replication lag and application behavior during failover
 
-**Problem:**
+---
 
-• Need to support customers in multiple regions
-• Latency requirements vary by region
-• Compliance requirements differ
+## 14.10 Scenario: Migration from Monolith
 
-**Solution:**
+### Problem
 
-• **Active-Active**: Deploy in multiple regions
-• **Data Replication**: Replicate data globally
-• **Traffic Routing**: Route to nearest region
-• **Compliance**: Separate data per region if needed
-• **Failover**: Automatic failover between regions
+Current promotions platform is monolithic.
 
-**Implementation:**
+### Approach
 
-• Deploy AKS clusters in US East, Europe, Asia
-• Cosmos DB multi-region replication
-• Azure Front Door for traffic routing
-• Separate databases per region if compliance requires
-• Automated failover
-
-## 14.10 Scenario 10: Performance Degradation Investigation
-
-**Problem:**
-
-• API response time increased from 100ms to 500ms
-• No code changes
-• Need to identify root cause
-
-**Solution:**
-
-• **Monitoring**: Check Application Insights metrics
-• **Database**: Check query performance, slow queries
-• **Dependencies**: Check external API latency
-• **Resources**: Check CPU, memory, disk
-• **Network**: Check latency, bandwidth
-• **Load**: Check request volume
-
-**Investigation Steps:**
-
-• Check Application Insights dashboard
-• Query slow requests
-• Check database query execution plans
-• Monitor external API response times
-• Check resource utilization
-• Load test to reproduce
-• Profile code if needed
-• Check recent deployments
-• Rollback if necessary
+- apply strangler pattern
+- extract read APIs first or low-risk integrations first
+- identify bounded contexts
+- introduce eventing carefully
+- move one capability at a time
+- maintain coexistence during transition
 
 ---
 
 # 15. FINAL PREPARATION TIPS
 
-## Study Approach
+## 15.1 How to Study This Effectively
 
-• **Week 1**: Learn architecture patterns and Azure services
-• **Week 2**: Study microservices design and API design
-• **Week 3**: Learn DevOps, Docker, Kubernetes
-• **Week 4**: Practice system design scenarios
-• **Week 5**: Mock interviews and Q&A
-• **Week 6**: Retail domain and final review
+### Focus on understanding, not memorization
 
-## Interview Preparation
+Interviewers care more about your reasoning than a perfect buzzword list.
 
-• Understand trade-offs (why choose A over B)
-• Be able to explain decisions to non-technical people
-• Practice drawing architecture diagrams
-• Prepare examples from real projects
-• Understand failure scenarios and recovery
-• Know monitoring and observability approaches
-• Be familiar with cost considerations
+### Use this learning order
 
-## Key Concepts to Master
-
-• Microservices decomposition
-• CQRS and event sourcing
-• Distributed transactions (Saga pattern)
-• API design and versioning
-• Database strategy (SQL vs NoSQL)
-• Event-driven architecture
-• CI/CD pipelines
-• Kubernetes basics
-• Security (authentication, authorization, encryption)
-• Monitoring and observability
-• Retail domain knowledge
-
-## Common Mistakes to Avoid
-
-• Over-engineering (don't use microservices for simple problems)
-• Ignoring scalability from the start
-• Not considering security early
-• Poor error handling
-• Inadequate monitoring
-• Not planning for failures
-• Ignoring operational concerns
-• Not documenting decisions
-
-## Resources
-
-• Microsoft Azure documentation
-• Azure Architecture Center
-• Microservices patterns (Chris Richardson)
-• Domain-Driven Design (Eric Evans)
-• Building Microservices (Sam Newman)
-• Release It! (Michael Nygard)
-• System Design Interview (Alex Xu)
+1. architecture basics
+2. service boundaries
+3. data design
+4. messaging and consistency
+5. Azure services and why
+6. security and DevOps
+7. failure scenarios
+8. retail/POS realities
+9. polished interview answers
 
 ---
 
-**END OF DOCUMENT**
+## 15.2 How to Answer Architecture Questions
 
-This comprehensive study material covers all aspects needed for the Promotions Management System role. Focus on understanding concepts deeply rather than memorizing, and practice explaining your understanding to others.
+A strong structure is:
+
+1. **State the high-level design**
+2. **Explain key components**
+3. **Explain why each was chosen**
+4. **Call out trade-offs**
+5. **Mention failure handling / scale / security**
+6. **Give a realistic example**
+
+### Example formula
+
+> I would design it as...  
+> The reason is...  
+> The main trade-off is...  
+> To handle failures, I would...  
+> For example...
+
+---
+
+## 15.3 What Interviewers Usually Look For
+
+They want to know whether you can:
+
+- design with trade-offs
+- separate concerns clearly
+- choose technologies for the right reasons
+- think about production realities
+- reason about consistency and failure
+- communicate clearly
+
+---
+
+## 15.4 Common Mistakes to Avoid
+
+- naming tools without explaining why
+- saying “microservices” for everything
+- ignoring eventual consistency
+- ignoring operational concerns
+- forgetting security and auditability
+- not knowing when to use SQL vs NoSQL
+- designing APIs without versioning/errors/pagination
+- not thinking about POS/store realities
+- giving theory-only answers without examples
+
+---
+
+## 15.5 Practice Questions to Rehearse
+
+Practice answering these aloud:
+
+- Why microservices here?
+- Why Azure SQL and Cosmos DB together?
+- Why Service Bus?
+- How do you ensure reliable event publishing?
+- How do promotions get to POS?
+- How do you handle conflicting promotions?
+- How do you handle eventual consistency?
+- How do you secure this platform?
+- How do you monitor it?
+- How would you scale for Black Friday?
+
+---
+
+## 15.6 Final Interview Advice
+
+- speak in clear structure
+- explain trade-offs honestly
+- say “it depends” only when you then explain what it depends on
+- give business-aware answers, not only technical ones
+- mention operational considerations
+- show that you can design for both correctness and scale
+
+---
+
+## 15.7 Final Summary
+
+This Promotions Management System is a strong example of a modern enterprise platform because it combines:
+
+- domain-driven service boundaries
+- transactional correctness
+- scalable read models
+- event-driven integration
+- strong operational visibility
+- secure API exposure
+- retail/POS integration realities
+- and production-ready DevOps practices
+
+If
