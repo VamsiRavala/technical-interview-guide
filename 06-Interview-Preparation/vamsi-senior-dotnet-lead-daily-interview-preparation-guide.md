@@ -1,31 +1,23 @@
 # Tech Lead Interview Preparation Document – Vamsi (Senior .NET Lead)
 
 > Daily quick-read guide to crack Senior .NET Lead / Tech Lead / Solution Architect interviews.
+> 
+Hi, I’m Vamsi, a Senior .NET Lead with 13+ years of experience building scalable enterprise applications. Currently, I work at Infosys supporting Kroger, where I’m leading the modernization of a legacy VB6 system into a cloud-native microservices platform using ASP.NET Core, React, Azure, and Kubernetes.
 
-## 1. Professional Summary
-Hi, I’m **Vamsi**, a **Senior .NET Lead** with over **13 years of experience** in designing, developing, and modernizing enterprise applications. I have been working in the **United States for the past 3 years**, and prior to that, I built my career in **India** delivering large-scale enterprise solutions.
-
-Currently, I work with **Kroger through Infosys**, where I’ve been involved in both supporting legacy systems and leading modernization initiatives. I initially worked on a legacy application called **ESP**, built using **VB6 and DB2**, where I handled **production support, bug fixes, enhancements, and performance improvements**.
-
-Over the last **8 months**, I’ve been leading the transformation of this system into **ESP2**—a modern, cloud-native platform using **.NET Core APIs, microservices architecture, React, SQL Server, Azure, and ML.NET**. We follow **Agile methodologies** and leverage **AI-assisted development tools like GitHub Copilot** to improve productivity and code quality.
-
-As a **.NET Lead**, I oversee the **full project lifecycle**, mentor developers, design **secure and scalable APIs**, manage deployments, and collaborate closely with QA and product teams to deliver high-quality solutions.
-
----
-
-## 2. Daily 2-Minute Elevator Pitch
-I am a **Senior Full-Stack Engineer / .NET Lead** with **13+ years of experience** building scalable enterprise platforms using **.NET, React, SQL Server, Azure, and microservices**. In my current role at **Infosys**, I’m leading the modernization of **Kroger’s ESP platform**, transforming a legacy **VB6 monolith** into a **cloud-native microservices architecture** with **ASP.NET Core, React, Docker, AKS, Azure, and CI/CD**. My strengths are **system modernization, architecture, performance tuning, API security, mentoring teams, and delivering scalable production-ready systems**.
+My strengths include system modernization, API design, performance optimization, and mentoring teams. I focus on delivering secure, scalable, production-ready solutions while driving adoption of modern architecture and DevOps practices.
 
 ---
 
 ## 3. Tell Me About Yourself
-I am a **Senior Full-Stack Engineer with over 13 years of experience** specializing in building scalable enterprise platforms. My expertise lies in the **.NET ecosystem, React, SQL Server, Azure cloud technologies, microservices, and DevOps practices**.
+Hi, I’m Vamsi. I’m a Senior .NET Lead with over 13 years of experience designing, developing, and modernizing enterprise applications. Over the past 3 years, I’ve been working in the United States, and before that, I built my career in India delivering large-scale enterprise solutions across domains like ERP and HR systems.
 
-In my current role as a **Technology Lead at Infosys**, I’m leading a major modernization effort for **Kroger**, where we are transforming a legacy **VB6 monolithic application into a cloud-native microservices platform** using **React, ASP.NET Core, SQL Server, Docker, and Azure Kubernetes Service (AKS)**.
+Currently, I’m working with Kroger through Infosys, where I play a key role in both supporting legacy systems and driving modernization initiatives. I initially worked on a legacy platform called ESP, built using VB6 and DB2, where I handled production support, bug fixes, performance improvements, and enhancements.
 
-Throughout my career, I’ve evolved from developing **ERP and HR systems in India** to leading **large-scale architectural transformations** for global organizations like **Kraft Heinz**.
+More recently, I’ve been leading the transformation of that system into a modern platform—ESP2—by moving from a monolithic architecture to a cloud-native microservices ecosystem. We’re using ASP.NET Core, React, SQL Server, Docker, Azure Kubernetes Service (AKS), and CI/CD pipelines, along with AI-assisted tools like GitHub Copilot to improve development efficiency and code quality.
 
-I’m passionate about **clean architecture, mentoring teams, modernization strategies, and leveraging cloud and automation** to build reliable, scalable, and efficient systems.
+In my role as a .NET Lead, I oversee the full development lifecycle—from architecture and design to deployment. I focus on building secure, scalable APIs, improving system performance, mentoring developers, and collaborating closely with cross-functional teams to deliver high-quality, production-ready solutions.
+
+Overall, my strengths lie in system modernization, cloud architecture, microservices design, performance optimization, and team leadership. I’m particularly passionate about transforming legacy systems into scalable, maintainable platforms using modern technologies and best practices.
 
 ---
 
