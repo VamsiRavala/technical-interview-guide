@@ -4,9 +4,39 @@
 
 ---
 
-## ⚠️ Note
+## 📚 Table of Contents
 
-The original source repository (satheeshmrs/dot-net-interview) is currently unavailable. This section provides a structured framework based on the required content organization. Content will be added as it becomes available or from alternative sources.
+### Modern .NET & C# (2026)
+
+1. **[C# 13 Features](01-csharp-13-features.md)**
+2. **[C# 12 Features](02-csharp-12-features.md)**
+3. **[.NET 9 Features](03-dotnet-9-features.md)**
+4. **[ASP.NET Core 9](04-aspnet-core-9.md)**
+5. **[EF Core 9](05-ef-core-9.md)**
+6. **[Native AOT](06-native-aot.md)**
+7. **[Minimal APIs (Advanced)](07-minimal-apis-advanced.md)**
+8. **[Authentication 2026](08-auth-2026.md)**
+9. **[Performance Optimization](09-performance-optimization.md)**
+10. **[Testing in .NET 9](10-testing-dotnet-9.md)**
+
+### Architecture & Design Patterns
+
+11. **[Clean Architecture](11-clean-architecture.md)**
+12. **[SOLID Principles](12-solid-principles.md)**
+13. **[Dependency Injection](13-dependency-injection.md)**
+14. **[Web API Best Practices](14-web-api-best-practices.md)**
+15. **[Repository Pattern](15-repository-pattern.md)** 🆕
+16. **[CQRS Pattern](16-cqrs-pattern.md)** 🆕
+17. **[Domain-Driven Design](17-domain-driven-design.md)** 🆕
+
+### Deep-Dive Folders
+
+- **[C#/](C%23/)** — language internals (OOP, value vs reference types, threading, etc.)
+- **[basics/](basics/)** — .NET runtime, JIT, GC, Kestrel, configuration
+- **[Authentication/](Authentication/)** — JWT, OAuth2, bearer, refresh flows
+- **[EF/](EF/)**, **[Caching/](Caching/)**, **[Design Pattern/](Design%20Pattern/)**, **[DSA/](DSA/)**, **[REST/](REST/)**, **[Security/](Security/)**, **[Web_API/](Web_API/)**, **[Parallel Processing/](Parallel%20Processing/)**, **[GC/](GC/)**, **[NET_Core/](NET_Core/)**, **[Interview/](Interview/)**
+
+> Related: [C# Collections reference](../docs/csharp-collections.md) · [End-to-end .NET + Azure case study](../docs/promotion-management-dotnet-azure.md)
 
 ---
 

@@ -1082,9 +1082,9 @@ public Result<Order> CreateOrder(CreateOrderDto dto)
 ## See Also
 
 - [SOLID Principles Guide](./12-solid-principles.md)
-- [Repository Pattern](./13-repository-pattern.md)
-- [CQRS Pattern](./14-cqrs-pattern.md)
-- [Domain-Driven Design](./15-domain-driven-design.md)
+- [Repository Pattern](./15-repository-pattern.md)
+- [CQRS Pattern](./16-cqrs-pattern.md)
+- [Domain-Driven Design](./17-domain-driven-design.md)
 - [Testing Strategies](./10-testing-dotnet-9.md)
 
 ## Additional Resources

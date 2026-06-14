@@ -1273,7 +1273,7 @@ public class EmailNotificationService : INotificationService
 
 - [Clean Architecture](./11-clean-architecture.md)
 - [Dependency Injection](./13-dependency-injection.md)
-- [Repository Pattern](./14-repository-pattern.md)
+- [Repository Pattern](./15-repository-pattern.md)
 - [Design Patterns](./Design%20Pattern/)
 
 ## Additional Resources
