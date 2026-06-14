@@ -26,6 +26,10 @@ This is not a "break into tech" guide. You already operate at the architecture a
 
 6. **[Learning Resources](06-learning-resources.md)** — Curated YouTube channels (Foundations / Microsoft stack / AI engineering / News), Microsoft Learn paths, the two flagship GitHub courses, and a channel-to-phase map
 
+### Certification Prep
+
+7. **[AI-103 Exam Prep](07-ai-103-exam-prep.md)** — *Developing AI Apps and Agents on Azure* (successor to AI-102): exam overview, skills-measured breakdown, a 6–8 week prep path mapped to repo sections 08–13, and 32 sample questions with answers
+
 ---
 
 ## 🎯 The 12-Month Plan at a Glance
