@@ -80,4 +80,75 @@ Before starting, assess your current level:
 - Study: 2-3 hours/day
 - Projects: 1-2 projects
 
-### Wee
+### Weekend Preparation (10 hours/week)
+- Duration: 12-16 weeks
+- Study: Weekend focus
+- Projects: 1 comprehensive project
+
+---
+
+## 🎯 Specialized Career Paths
+
+### For Senior/Principal Level (10+ years experience)
+If you're targeting senior/principal roles at Amazon (L6/L7) or Microsoft (63-66) with $170K+ compensation:
+
+👉 **See our comprehensive guide**: [Senior/Principal FAANG Roadmap](senior-principal-faang-roadmap.md)
+
+This specialized path focuses on:
+- ✅ Algorithm mastery (200-300 LeetCode problems)
+- ✅ System design at scale (critical at this level)
+- ✅ Architecture depth beyond full-stack
+- ✅ Leadership & behavioral (Amazon Leadership Principles)
+- ✅ 3-6 month structured preparation timeline
+
+**Key Difference**: At senior/principal level, system design and leadership matter MORE than coding, but you still must pass rigorous algorithm rounds.
+
+---
+
+## 🎯 Study Approach
+
+### 1. Theory (40%)
+- Read documentation
+- Watch tutorials
+- Take notes
+- Create mind maps
+
+### 2. Practice (40%)
+- Code along with tutorials
+- Solve coding challenges
+- Implement patterns
+- Build small projects
+
+### 3. Review (20%)
+- Review interview questions
+- Practice explaining concepts
+- Mock interviews
+- Peer discussions
+
+---
+
+## 📝 Resources
+
+### Study Materials
+- Official documentation
+- This repository's content
+- Online courses
+- YouTube tutorials
+- Books and articles
+
+### Practice Platforms
+- LeetCode
+- HackerRank
+- CodeSignal
+- Exercism
+- Project Euler
+
+### Mock Interviews
+- Pramp
+- Interviewing.io
+- LeetCode mock interviews
+- With friends or colleagues
+
+---
+
+*Choose your path and start preparing!*

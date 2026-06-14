@@ -337,4 +337,8 @@ Contributions are welcome! Please ensure:
 - Content is practical and relevant
 - Include code examples where applicable
 - Explain trade-offs and alternatives
-- Ke
+- Keep examples technology-agnostic when possible
+
+---
+
+*Build scalable, resilient microservices architectures!* 🚀

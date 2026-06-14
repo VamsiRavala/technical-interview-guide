@@ -315,3 +315,24 @@ Object.seal(obj)
 - **Node.js**: Server-side JavaScript
 - **Express.js**: Web framework
 - **Databases**: MongoDB, PostgreSQL
+- **APIs**: REST, GraphQL
+
+### Tools & Environment
+- **Package Managers**: npm, yarn, pnpm
+- **Linters**: ESLint, Prettier
+- **Version Control**: Git
+- **Browser DevTools**: Chrome DevTools
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please ensure:
+- Code examples are tested
+- Explanations are clear and concise
+- Follow ES6+ standards
+- Include comments for complex code
+
+---
+
+*Master JavaScript and ace your interviews!* 💪

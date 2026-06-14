@@ -240,4 +240,97 @@ dotnet add package Microsoft.EntityFrameworkCore.Tools
 dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
 
 # Caching
-dotnet add package Microsof
+dotnet add package Microsoft.Extensions.Caching.StackExchangeRedis
+
+# API Documentation
+dotnet add package Swashbuckle.AspNetCore
+```
+
+---
+
+## 📚 Recommended Resources
+
+### Official Documentation
+- [.NET Documentation](https://docs.microsoft.com/dotnet)
+- [ASP.NET Core Documentation](https://docs.microsoft.com/aspnet/core)
+- [Entity Framework Core](https://docs.microsoft.com/ef/core)
+- [C# Programming Guide](https://docs.microsoft.com/dotnet/csharp)
+
+### Learning Platforms
+- Microsoft Learn
+- Pluralsight
+- Udemy
+- YouTube channels (Nick Chapsas, Tim Corey, IAmTimCorey)
+
+### Community Resources
+- Stack Overflow
+- Reddit: r/dotnet, r/csharp
+- Dev.to
+- Medium
+
+---
+
+## 🎓 Interview Preparation Strategy
+
+### Technical Skills to Highlight
+- Strong C# fundamentals
+- RESTful API design
+- Database design and EF Core
+- Authentication and security
+- Performance optimization
+- Testing (Unit, Integration, E2E)
+- CI/CD experience
+
+### Common Interview Questions
+- Explain the difference between value types and reference types
+- How does garbage collection work in .NET?
+- What is the difference between async and sync methods?
+- Explain middleware pipeline in ASP.NET Core
+- How do you implement authentication in Web API?
+- What are best practices for API design?
+- How do you handle errors in Web API?
+- Explain dependency injection in .NET
+
+### Coding Challenges
+- Implement a RESTful API
+- Design a caching strategy
+- Implement JWT authentication
+- Optimize database queries
+- Handle concurrency in EF Core
+
+---
+
+## 🔗 Related Topics
+
+- **Azure**: Cloud services, App Service, Azure Functions
+- **Microservices**: Service architecture, API Gateway, Service discovery
+- **DevOps**: Docker, Kubernetes, CI/CD pipelines
+- **Testing**: xUnit, NUnit, Moq, FluentAssertions
+- **Logging**: Serilog, Application Insights
+
+---
+
+## 🤝 Contributing
+
+This section is under development. If you have quality .NET/C# content to contribute:
+1. Ensure content is accurate and current
+2. Follow the existing structure
+3. Include code examples
+4. Add appropriate references
+
+---
+
+## 📝 Status
+
+**Current Status**: Structure created, awaiting content population
+
+**Priority Areas**:
+1. C# Fundamentals ⭐⭐⭐
+2. Web API Development ⭐⭐⭐
+3. Authentication & Security ⭐⭐⭐
+4. Entity Framework Core ⭐⭐
+5. Performance & Optimization ⭐⭐
+
+---
+
+*This section will be updated as content becomes available. Check back regularly for updates!*

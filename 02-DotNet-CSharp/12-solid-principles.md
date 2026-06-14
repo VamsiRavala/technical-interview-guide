@@ -1280,4 +1280,4 @@ public class EmailNotificationService : INotificationService
 
 - [SOLID Principles by Uncle Bob](https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html)
 - [Pluralsight: SOLID Principles of Object Oriented Design](https://www.pluralsight.com/courses/principles-oo-design)
-- [Clean Code by Ro
+- [Clean Code by Robert C. Martin](https://www.amazon.com/Clean-Code-Handbook-Software-Craftsmanship/dp/0132350882)
