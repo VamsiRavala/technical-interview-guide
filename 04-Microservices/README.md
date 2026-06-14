@@ -7,34 +7,28 @@
 ## 📚 Table of Contents
 
 ### Core Concepts
+
 1. **[Introduction to Microservices](01-intro.md)** - Fundamentals and principles
 
-### Communication Patterns
-2. **[Communication Patterns](02-communication-patterns/)** - Service-to-service communication
-   - Introduction to communication patterns
-   - REST API design
-   - gRPC
-   - GraphQL
-   - Request-Response patterns
+### Communication
 
-### Implementation
-3. **[Implementation Guide](03-implementation/)** - Practical implementations
-   - **gRPC**: Protocol buffers, .NET implementation
-   - **GraphQL**: Queries, mutations, fragments, aliases
-   - Communication pattern implementations
+2. **[Communication Patterns](02-communication-patterns.md)** - Synchronous vs asynchronous, request-response, messaging
+3. **[REST & API Design](03-rest-and-api-design.md)** - RESTful services and API design best practices
+4. **[gRPC](04-grpc.md)** - Protocol Buffers, HTTP/2, and .NET implementation
+5. **[GraphQL](05-graphql.md)** - Queries, fragments, aliases, and GraphQL vs OData
+6. **[API Gateway](06-api-gateway.md)** - Single entry point and BFF pattern
 
 ### Design Patterns
-4. **[Design Patterns](04-design-patterns/)** - Common microservices patterns
-   - **Communication**: API Gateway
-   - **Data**: CQRS, Saga, Database per Service
-   - **Resilience**: Circuit Breaker, Retry with Backoff
-   - **Decomposition**: Domain-Driven Design (DDD)
+
+7. **[Service Decomposition & DDD](07-service-decomposition-ddd.md)** - Bounded contexts and decomposition strategies
+8. **[Database per Service](08-database-per-service.md)** - Data ownership and isolation
+9. **[Saga Pattern](09-saga-pattern.md)** - Distributed transactions and compensation
+10. **[CQRS](10-cqrs.md)** - Command/query responsibility segregation
+11. **[Resilience Patterns](11-resilience-patterns.md)** - Circuit Breaker and Retry with backoff (Polly)
 
 ### Infrastructure
-5. **[Infrastructure](05-infrastructure/)** - Supporting services
-   - Service Discovery
-   - Configuration management
-   - Monitoring and observability
+
+12. **[Service Discovery](12-service-discovery.md)** - Service registry and discovery
 
 ---
 
@@ -343,8 +337,4 @@ Contributions are welcome! Please ensure:
 - Content is practical and relevant
 - Include code examples where applicable
 - Explain trade-offs and alternatives
-- Keep examples technology-agnostic when possible
-
----
-
-*Build scalable, resilient microservices architectures!* 🚀
+- Ke

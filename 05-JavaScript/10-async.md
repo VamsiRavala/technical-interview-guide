@@ -88,7 +88,7 @@ console.log('End');
 - Timers (setTimeout, setInterval)
 - User events
 
-> **Note:** For more details on how asynchronous code is executed, see [11-interview/event_loop.md](./11-interview/event_loop.md)
+> **Note:** For more details on how asynchronous code is executed, see [Async & the Event Loop](./12-async-and-event-loop.md)
 
 ---
 
@@ -2007,7 +2007,7 @@ console.log('4'); // Call stack
 // Microtasks run before tasks
 ```
 
-> **For more details, see [11-interview/event_loop.md](./11-interview/event_loop.md)**
+> **For more details, see [Async & the Event Loop](./12-async-and-event-loop.md)**
 
 ### Question 9: What are common pitfalls with async/await?
 
@@ -2103,7 +2103,7 @@ async function fetchWithTimeout(url, ms) {
 2. **Callbacks**: Functions passed as arguments, basis of async (see [09-callback-functions.md](./09-callback-functions.md))
 3. **Promises**: Objects representing eventual completion/failure of async operations
 4. **Async/Await**: Syntactic sugar making async code look synchronous
-5. **Event Loop**: JavaScript's mechanism for handling async operations (see [11-interview/event_loop.md](./11-interview/event_loop.md))
+5. **Event Loop**: JavaScript's mechanism for handling async operations (see [Async & the Event Loop](./12-async-and-event-loop.md))
 
 ### Promise States
 - **Pending** → **Fulfilled** or **Rejected**
@@ -2182,8 +2182,8 @@ queue.add(asyncFn)
 
 - **Related Files:**
   - [09-callback-functions.md](./09-callback-functions.md) - Detailed callback information
-  - [11-interview/event_loop.md](./11-interview/event_loop.md) - Event loop deep dive
-  - [11-interview/callback.md](./11-interview/callback.md) - Callback interview questions
+  - [Async & the Event Loop](./12-async-and-event-loop.md) - Event loop deep dive
+  - [Callbacks (Async & the Event Loop)](./12-async-and-event-loop.md) - Callback interview questions
 
 - **MDN Documentation:**
   - [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)

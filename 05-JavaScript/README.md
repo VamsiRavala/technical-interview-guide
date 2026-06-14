@@ -18,20 +18,13 @@
 9. **[Callback Functions](09-callback-functions.md)** - Understanding callbacks
 10. **[Async Programming](10-async.md)** - Promises and async/await
 
-### Interview Preparation
-11. **[Interview Topics](11-interview/)** - Advanced concepts and interview questions
-    - Closures
-    - Currying
-    - Memoization
-    - Generator functions
-    - Destructuring
-    - Rest parameters and spread operator
-    - Async and Promises
-    - Array filter and methods
-    - Error handling
-    - ES5 vs ES6
-    - Prototypes
-    - And more...
+### Advanced Topics & Interview Prep
+11. **[Closures, Scope & `this`](11-closures-scope-and-this.md)** - Closures, Temporal Dead Zone, `this`, currying
+12. **[Async & the Event Loop](12-async-and-event-loop.md)** - Event loop, Promises/async-await, callbacks, generators
+13. **[Prototypes & Metaprogramming](13-prototypes-and-metaprogramming.md)** - Prototypal inheritance, prototype pattern, Symbols, Proxy/Reflect
+14. **[Iterators, Collections & Syntax](14-iterators-collections-and-syntax.md)** - Iterators/iterables, Map/Set vs WeakMap/WeakSet, for...of, destructuring, rest/spread, arrow functions
+15. **[Modules, Patterns & Utilities](15-modules-patterns-and-utilities.md)** - ES modules, memoization, debounce/throttle, regex, ES5 vs ES6, error handling
+16. **[Interview Questions](16-interview-questions.md)** - JavaScript interview question bank
 
 ---
 
@@ -64,7 +57,7 @@
 
 ### Advanced (Week 5-6)
 1. **Advanced Concepts**
-   - Study all topics in [Interview folder](11-interview/)
+   - Study the advanced topics (files 11–16)
    - Closures and scope
    - Prototypes and inheritance
    - ES6+ features
@@ -322,24 +315,3 @@ Object.seal(obj)
 - **Node.js**: Server-side JavaScript
 - **Express.js**: Web framework
 - **Databases**: MongoDB, PostgreSQL
-- **APIs**: REST, GraphQL
-
-### Tools & Environment
-- **Package Managers**: npm, yarn, pnpm
-- **Linters**: ESLint, Prettier
-- **Version Control**: Git
-- **Browser DevTools**: Chrome DevTools
-
----
-
-## 🤝 Contributing
-
-Contributions welcome! Please ensure:
-- Code examples are tested
-- Explanations are clear and concise
-- Follow ES6+ standards
-- Include comments for complex code
-
----
-
-*Master JavaScript and ace your interviews!* 💪

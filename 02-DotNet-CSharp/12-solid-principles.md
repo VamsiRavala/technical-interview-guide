@@ -1274,10 +1274,10 @@ public class EmailNotificationService : INotificationService
 - [Clean Architecture](./11-clean-architecture.md)
 - [Dependency Injection](./13-dependency-injection.md)
 - [Repository Pattern](./15-repository-pattern.md)
-- [Design Patterns](./Design%20Pattern/)
+- [Repository Pattern](./15-repository-pattern.md) · [CQRS](./16-cqrs-pattern.md) · [Domain-Driven Design](./17-domain-driven-design.md)
 
 ## Additional Resources
 
 - [SOLID Principles by Uncle Bob](https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html)
 - [Pluralsight: SOLID Principles of Object Oriented Design](https://www.pluralsight.com/courses/principles-oo-design)
-- [Clean Code by Robert C. Martin](https://www.amazon.com/Clean-Code-Handbook-Software-Craftsmanship/dp/0132350882)
+- [Clean Code by Ro

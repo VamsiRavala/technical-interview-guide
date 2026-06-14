@@ -606,7 +606,7 @@ console.log(counter.increment()); // 2
 console.log(counter.getCount());  // 2
 ```
 
-**For comprehensive closure examples and interview questions, see:** [11-interview/Closure.md](./11-interview/Closure.md)
+**For comprehensive closure examples and interview questions, see:** [Closures, Scope & this](./11-closures-scope-and-this.md)
 
 ---
 
@@ -1763,7 +1763,7 @@ setTimeout(() => obj.greet(), 1000);
 3. **Function Features:**
    - Higher-order functions (take/return functions)
    - Callbacks (detailed in [09-callback-functions.md](./09-callback-functions.md))
-   - Closures (detailed in [11-interview/Closure.md](./11-interview/Closure.md))
+   - Closures (detailed in [Closures, Scope & this](./11-closures-scope-and-this.md))
    - Recursion (function calls itself)
 
 4. **Function Characteristics:**
@@ -1802,7 +1802,7 @@ setTimeout(() => obj.greet(), 1000);
 
 - **Arrow Functions:** [05-arrow-functions.md](./05-arrow-functions.md)
 - **Callback Functions:** [09-callback-functions.md](./09-callback-functions.md)
-- **Closures:** [11-interview/Closure.md](./11-interview/Closure.md)
+- **Closures:** [Closures, Scope & this](./11-closures-scope-and-this.md)
 - **Async Functions:** [10-async.md](./10-async.md)
 
 Master these function concepts to write clean, efficient, and maintainable JavaScript code! 🚀
