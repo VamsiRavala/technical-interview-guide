@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Promotions.Api/Promotions.Api.csproj" />
+  <Project Path="Promotions.Domain/Promotions.Domain.csproj" />
+  <Project Path="Promotions.Functions/Promotions.Functions.csproj" />
+  <Project Path="Promotions.Infrastructure/Promotions.Infrastructure.csproj" />
+</Solution>

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Cosmos DB (10-cosmos-db) -->
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.46.0" />
+    <!-- Service Bus (05-service-bus) -->
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.4" />
+    <!-- Event Grid (07-event-grid) -->
+    <PackageReference Include="Azure.Messaging.EventGrid" Version="4.30.0" />
+    <!-- Event Hubs (06-event-hubs) -->
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.12.1" />
+    <!-- Storage Account + Storage Queue (08, 09) -->
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
+    <PackageReference Include="Azure.Storage.Queues" Version="12.22.0" />
+    <!-- Notification Hubs (11) -->
+    <PackageReference Include="Microsoft.Azure.NotificationHubs" Version="4.2.0" />
+    <!-- Managed-identity auth (security best practices) -->
+    <PackageReference Include="Azure.Identity" Version="1.13.2" />
+
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Promotions.Domain\Promotions.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

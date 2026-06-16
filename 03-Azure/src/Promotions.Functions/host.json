@@ -1,0 +1,25 @@
+{
+  "version": "2.0",
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      }
+    }
+  },
+  "extensions": {
+    "durableTask": {
+      "hubName": "PromotionsTaskHub"
+    },
+    "serviceBus": {
+      "maxConcurrentCalls": 16,
+      "sessionHandlerOptions": {
+        "maxConcurrentSessions": 8
+      }
+    },
+    "eventHubs": {
+      "maxEventBatchSize": 100
+    }
+  }
+}

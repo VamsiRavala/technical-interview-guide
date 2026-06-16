@@ -1,0 +1,52 @@
+@host = http://localhost:5000
+
+### Health probe
+GET {{host}}/health
+
+### Create a promotion (persists to Cosmos, publishes to Service Bus + Event Grid)
+POST {{host}}/api/promotions
+Content-Type: application/json
+
+{
+  "region": "US",
+  "name": "Weekend 20% Off",
+  "type": 0,
+  "discountValue": 20,
+  "startDate": "2026-06-20T00:00:00Z",
+  "endDate": "2026-06-22T00:00:00Z",
+  "storeIds": ["S001", "S002", "S003"],
+  "applicableProducts": ["SKU123", "SKU456"],
+  "minimumCartValue": 50,
+  "createdBy": "marketing@contoso.com"
+}
+
+### List a region's promotions (single-partition Cosmos query)
+GET {{host}}/api/promotions?region=US
+
+### Get one promotion (point read)
+GET {{host}}/api/promotions/REPLACE_ID?region=US
+
+### Activate (publishes events + queues catalog rebuild job)
+POST {{host}}/api/promotions/REPLACE_ID/activate?region=US
+
+### Register a device for push notifications (Notification Hubs)
+POST {{host}}/api/devices
+Content-Type: application/json
+
+{
+  "platform": "fcm",
+  "pushHandle": "fcm-device-token-here",
+  "tags": ["region:US", "store:S001"]
+}
+
+### Stream a POS redemption (Event Hubs telemetry)
+POST {{host}}/api/redemptions
+Content-Type: application/json
+
+{
+  "promotionId": "REPLACE_ID",
+  "storeId": "S001",
+  "region": "US",
+  "discountApplied": 12.50,
+  "cartValue": 62.50
+}

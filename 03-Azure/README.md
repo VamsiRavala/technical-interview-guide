@@ -24,6 +24,10 @@
 
 12. **[Promotion Management — Full Interview Prep](../docs/promotion-management-dotnet-azure.md)** — Complete end-to-end guide: React SPA → Azure AD → APIM → .NET Core API → Service Bus → Cosmos DB → AKS. Covers domain design, REST API, SQL queries, CI/CD with GitHub Actions, Kubernetes, observability, and an interview cheat-sheet with 24-hour study plan. *(Retail/POS domain)*
 
+## 💻 Runnable Reference Solution
+
+13. **[Promotions Management — .NET 9 + Azure code](src/README.md)** — A buildable solution that implements **all 11 topics above** in the promotions domain: Cosmos repository, Service Bus / Event Grid / Event Hubs / Storage Queue adapters, Blob export, Notification Hubs push, an ASP.NET Core API, an isolated-worker Functions app with every trigger, a Durable Functions approval workflow (chaining + human interaction + monitor + fan-out/fan-in), and Bicep IaC (zone-redundant). See the [topic → code map](src/README.md#️-topic--code-map).
+
 ---
 
 ## 🎯 Learning Path
