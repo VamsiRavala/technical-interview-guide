@@ -526,4 +526,26 @@ function VideoPlayer({ src }) {
 
 ---
 
+## Event Handling: onClick vs onChange
+
+Both are React synthetic events, but they fire on different interactions:
+
+- **`onClick`** - fires when an element is clicked (buttons, icons, divs). The handler usually acts on *intent* and needs no value: submit, toggle, navigate.
+- **`onChange`** - fires when the **value of a form control changes** (`<input>`, `<textarea>`, `<select>`). In React it fires on *every keystroke* (unlike native HTML `change`, which fires on blur). You read the new value from `event.target.value` (or `.checked` for checkboxes). This is the backbone of **controlled components**.
+
+```jsx
+// onClick: respond to an action
+<button onClick={() => setCount(c => c + 1)}>Increment</button>
+
+// onChange: track the new value of an input (controlled component)
+<input value={name} onChange={e => setName(e.target.value)} />
+
+// checkboxes read .checked
+<input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} />
+```
+
+Rule of thumb: **onClick** = "the user did something"; **onChange** = "this field's value is now different." Controlled inputs and hooks are covered in [02-hooks-complete-guide.md](02-hooks-complete-guide.md).
+
+---
+
 *Last Updated: January 2026 - React 19*

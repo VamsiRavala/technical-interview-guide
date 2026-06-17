@@ -770,3 +770,28 @@ await context.Products
 
 ### Bottom Line
 Optimistic concurrency in EF Core is simple and powerful **if you surface the token and handle conflicts intentionally**. Choose a strategy (database wins, client wins, or merge), make it consistent in your UI/API, and test it.
+
+---
+
+## SQL Server Essentials: varchar vs nvarchar
+
+A frequent .NET/SQL interview question and a real EF Core mapping decision.
+
+| | `varchar(n)` | `nvarchar(n)` |
+|---|---|---|
+| Encoding | Non-Unicode, 1 byte/char (code-page dependent) | Unicode UTF-16, 2 bytes/char |
+| Storage | Smaller for ASCII/Latin text | About 2x the bytes |
+| Use when | Data is guaranteed ASCII/single-language (codes, SKUs, keys) | Data may be any language / emoji (names, free text) |
+| Max length | `varchar(8000)` / `varchar(max)` | `nvarchar(4000)` / `nvarchar(max)` |
+
+Guidance: **default to `nvarchar`** for user-facing text — it is safe for international input and avoids data-corruption bugs. Use `varchar` to save space only when you are certain the column is ASCII-only and high-volume. In EF Core, control it with `IsUnicode(false)` or an explicit column type:
+
+```csharp
+modelBuilder.Entity<Product>()
+    .Property(p => p.Sku)
+    .HasMaxLength(32)
+    .IsUnicode(false);   // maps to varchar(32) instead of the default nvarchar(32)
+```
+
+> Related SQL interview topics are answered elsewhere: **clustered vs non-clustered indexes**, **optimizing a slow query**, and **sargability** are in [../06-Interview-Preparation/architect-interview-reference.md](../06-Interview-Preparation/architect-interview-reference.md) (sections 6.4 "SQL Performance" and 11.2 "Indexes Deep").
+

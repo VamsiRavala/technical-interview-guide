@@ -265,3 +265,22 @@ The Virtual DOM is **React’s secret sauce** for balancing:
 - **Developer productivity** (simple declarative syntax, fewer bugs).  
 
 It matters because it transforms the way UIs are built: developers focus on **what the UI should be**, while React efficiently figures out **how to update it** behind the scenes.
+
+---
+
+## 9. Keys: Why Not Use the Array Index?
+
+`key` tells React's reconciler which list items are the *same* element across renders. Using the **array index** as the key breaks that identity whenever the list can reorder, filter, insert, or delete — the index of an item changes, so React pairs the wrong previous element with the wrong new one.
+
+Symptoms: the wrong rows look edited/selected, input values "stick" to the wrong item, animations glitch, and child component state attaches to the wrong data.
+
+```jsx
+// Bad - index shifts when the list mutates
+{todos.map((todo, i) => <TodoRow key={i} todo={todo} />)}
+
+// Good - stable, unique id from the data
+{todos.map(todo => <TodoRow key={todo.id} todo={todo} />)}
+```
+
+When is an index acceptable? Only when the list is **static** — never reordered, filtered, or inserted into — and the items hold no local state. Otherwise always use a stable, unique id.
+

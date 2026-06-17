@@ -923,6 +923,29 @@ for (int i = 0; i < array.Length; i++)
 - **Memory:** Contiguous allocation - good cache locality
 - **Resize:** O(n) - avoid frequent resizing
 
+#### Pattern 5: Subarrays with Product Less Than K
+
+Count contiguous subarrays whose product of all elements is strictly less than `k`. A classic **sliding window** problem — the window approach works because all elements are positive, so extending the window can only increase the product.
+
+```csharp
+// O(n) time, O(1) space. Assumes every nums[i] > 0.
+public static int NumSubarrayProductLessThanK(int[] nums, int k)
+{
+    if (k <= 1) return 0;              // nothing can have product < 1
+    int product = 1, left = 0, count = 0;
+    for (int right = 0; right < nums.Length; right++)
+    {
+        product *= nums[right];
+        while (product >= k)           // shrink window until product < k
+            product /= nums[left++];
+        count += right - left + 1;     // every subarray ending at 'right' that is valid
+    }
+    return count;
+}
+```
+
+Key insight: when the window `[left..right]` has product `< k`, **every** subarray that ends at `right` and starts anywhere in `[left..right]` is also valid — that contributes `right - left + 1` new subarrays. (LeetCode 713.)
+
 ### Arrays Summary
 
 | Concept | Key Points |
@@ -2255,6 +2278,34 @@ if (index < span.Length)
 - **String.Contains:** O(n*m) worst case
 - **String.IndexOf:** O(n*m) naive, optimized in .NET
 - **String interning:** Saves memory but costs time for lookup
+
+#### Longest Palindromic Substring
+
+Return the longest palindromic (symmetric) **contiguous** substring. The clean interview answer is **expand around center**: every palindrome has a center — a single character (odd length) or the gap between two characters (even length) — so test all `2n - 1` centers.
+
+```csharp
+// O(n^2) time, O(1) extra space. (Manacher's gives O(n) but is rarely required.)
+public static string LongestPalindrome(string s)
+{
+    if (string.IsNullOrEmpty(s)) return "";
+    int start = 0, maxLen = 1;
+    for (int center = 0; center < s.Length; center++)
+    {
+        Expand(s, center, center,     ref start, ref maxLen); // odd length
+        Expand(s, center, center + 1, ref start, ref maxLen); // even length
+    }
+    return s.Substring(start, maxLen);
+}
+
+private static void Expand(string s, int l, int r, ref int start, ref int maxLen)
+{
+    while (l >= 0 && r < s.Length && s[l] == s[r]) { l--; r++; }
+    int len = r - l - 1;              // loop overshoots by one on each side
+    if (len > maxLen) { maxLen = len; start = l + 1; }
+}
+```
+
+Clarify the wording: longest palindromic **substring** (contiguous, shown here, LeetCode 5) is different from longest palindromic **subsequence** (non-contiguous, a separate DP problem). Ask which one the interviewer means.
 
 ### Strings Summary
 
