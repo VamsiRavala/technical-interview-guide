@@ -19,6 +19,11 @@
 - [Solution Architect — Master Training Document](solution-architect-master-training.md) - Architect-level reference (architecture, patterns, system design, Azure, security, DevOps)
 - [The Architect's Interview Reference](architect-interview-reference.md) - Long-term senior/staff/principal reference (.NET, Azure, React, distributed systems)
 
+### Behavioral & Leadership
+
+- [Senior .NET Dev / Lead / Architect — Behavioral & Leadership Q&A](senior-dotnet-lead-behavioral-questions.md) - 10 open-ended "senior experience" questions (evolution, complex-project, troubleshooting under load, trade-offs, first-100-days) with model answers in your voice
+- [Behavioral Cheat-Sheet (1-page)](senior-dotnet-lead-cheatsheet.md) - Headline + 3 bullets per question for glance-before-you-walk-in review
+
 ### Q&A Banks & Quick Review
 
 - [Complete Q&A Reference — 540+ Questions](complete-540-qa-reference.md) - Numbered multi-topic Q&A bank, basics → advanced
